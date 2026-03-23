@@ -12,7 +12,7 @@ export const SUIT_SYMBOLS: Record<Suit, string> = {
 };
 
 export const SUIT_COLORS: Record<Suit, string> = {
-  s: '#1a1a2e',
+  s: '#cbd5e1',
   h: '#dc2626',
   d: '#2563eb',
   c: '#16a34a',

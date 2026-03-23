@@ -2,10 +2,12 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { type EquityResult, type EquityInput } from '../../engine/equity';
 import { parseRangeNotation, rangeToNotation, countCombos, type RangeMatrix } from '../../engine/ranges';
 import { type Card } from '../../engine/evaluator';
+import type { HeatmapResult } from '../../engine/heatmap';
 import { PlayerPanel } from './PlayerPanel';
 import { ResultsBar } from './ResultsBar';
 import { BoardSelector } from '../BoardSelector/BoardSelector';
 import { DeadCards } from './DeadCards';
+import { ScenarioAnalyzer } from '../ScenarioAnalyzer/ScenarioAnalyzer';
 
 interface PlayerState {
   notation: string;
@@ -13,13 +15,12 @@ interface PlayerState {
 }
 
 interface EquityCalculatorProps {
-  /** Called when a player panel requests to open the range grid */
   onOpenGrid?: (playerIndex: number, range: RangeMatrix) => void;
-  /** Range received from the grid editor */
   externalRange?: { playerIndex: number; range: RangeMatrix } | null;
+  onHeatmapResult?: (result: HeatmapResult | null) => void;
 }
 
-export function EquityCalculator({ onOpenGrid, externalRange }: EquityCalculatorProps) {
+export function EquityCalculator({ onOpenGrid, externalRange, onHeatmapResult }: EquityCalculatorProps) {
   const [players, setPlayers] = useState<PlayerState[]>([
     { notation: '', range: parseRangeNotation('') },
     { notation: '', range: parseRangeNotation('') },
@@ -28,18 +29,24 @@ export function EquityCalculator({ onOpenGrid, externalRange }: EquityCalculator
   const [deadCards, setDeadCards] = useState<Card[]>([]);
   const [result, setResult] = useState<EquityResult | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [isHeatmapping, setIsHeatmapping] = useState(false);
   const [activePlayer, setActivePlayer] = useState<number>(0);
   const [iterations, setIterations] = useState(100000);
   const workerRef = useRef<Worker | null>(null);
+  const heatmapWorkerRef = useRef<Worker | null>(null);
 
-  // Create worker on mount
   useEffect(() => {
     const worker = new Worker(
       new URL('../../../workers/equity-worker.ts', import.meta.url),
       { type: 'module' }
     );
+    const heatWorker = new Worker(
+      new URL('../../../workers/equity-worker.ts', import.meta.url),
+      { type: 'module' }
+    );
     workerRef.current = worker;
-    return () => worker.terminate();
+    heatmapWorkerRef.current = heatWorker;
+    return () => { worker.terminate(); heatWorker.terminate(); };
   }, []);
 
   // Apply external range from grid
@@ -81,9 +88,7 @@ export function EquityCalculator({ onOpenGrid, externalRange }: EquityCalculator
     setResult(null);
   }, [players.length]);
 
-  // Collect all used cards (board + dead cards)
   const usedCards = new Set<number>([...board, ...deadCards]);
-
   const canCalculate = players.filter(p => countCombos(p.range) > 0).length >= 2;
 
   const handleCalculate = useCallback(() => {
@@ -109,6 +114,30 @@ export function EquityCalculator({ onOpenGrid, externalRange }: EquityCalculator
     worker.addEventListener('message', handler);
     worker.postMessage({ type: 'calculate', input });
   }, [players, board, deadCards, iterations, canCalculate]);
+
+  const handleHeatmap = useCallback(() => {
+    if (!canCalculate || !heatmapWorkerRef.current || players.length < 2) return;
+    setIsHeatmapping(true);
+
+    const worker = heatmapWorkerRef.current;
+    const handler = (e: MessageEvent) => {
+      if (e.data.type === 'heatmap-result') {
+        onHeatmapResult?.(e.data.result);
+      }
+      setIsHeatmapping(false);
+      worker.removeEventListener('message', handler);
+    };
+
+    worker.addEventListener('message', handler);
+    worker.postMessage({
+      type: 'heatmap',
+      heroRange: players[0].range,
+      villainRange: players[1].range,
+      board,
+      deadCards,
+      iterationsPerHand: 1500,
+    });
+  }, [players, board, deadCards, canCalculate, onHeatmapResult]);
 
   const playerLabels = players.map((_, i) => `Joueur ${i + 1}`);
 
@@ -179,14 +208,28 @@ export function EquityCalculator({ onOpenGrid, externalRange }: EquityCalculator
         </select>
       </div>
 
-      {/* Calculate button */}
-      <button
-        onClick={handleCalculate}
-        disabled={!canCalculate || isCalculating}
-        className="w-full py-2.5 rounded-lg font-bold text-sm transition-colors bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-40 disabled:cursor-not-allowed"
-      >
-        {isCalculating ? 'Calcul en cours...' : 'Calculer'}
-      </button>
+      {/* Action buttons */}
+      <div className="flex gap-2">
+        <button
+          onClick={handleCalculate}
+          disabled={!canCalculate || isCalculating}
+          className="flex-1 py-2.5 rounded-lg font-bold text-sm transition-colors bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {isCalculating ? 'Calcul...' : 'Calculer'}
+        </button>
+        <div className="relative group">
+          <button
+            onClick={handleHeatmap}
+            disabled={!canCalculate || isHeatmapping}
+            className="py-2.5 px-4 rounded-lg font-bold text-sm transition-colors bg-amber-600 hover:bg-amber-500 text-white disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {isHeatmapping ? '...' : 'Heatmap'}
+          </button>
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 bg-zinc-700 border border-zinc-600 rounded-lg p-2.5 shadow-xl text-[11px] text-zinc-300 leading-relaxed opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50">
+            Affiche la force de chaque main du J1 contre le range du J2 par un code couleur sur la grille (vert = forte, rouge = faible).
+          </div>
+        </div>
+      </div>
 
       {/* Results bar */}
       {result && (
@@ -197,6 +240,13 @@ export function EquityCalculator({ onOpenGrid, externalRange }: EquityCalculator
           </div>
         </div>
       )}
+
+      {/* Scenario analyzer */}
+      <ScenarioAnalyzer
+        ranges={players.map(p => p.range)}
+        board={board}
+        deadCards={deadCards}
+      />
     </div>
   );
 }
