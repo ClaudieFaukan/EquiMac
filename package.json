@@ -13,6 +13,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "electron-updater": "^6.8.3",
     "zustand": "^5.0.3"
   },
   "devDependencies": {
@@ -33,12 +34,19 @@
     "vitest": "^3.0.9",
     "wait-on": "^9.0.4"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ClaudieFaukan/EquiMac.git"
+  },
+  "author": "ClaudieFaukan",
+  "license": "MIT",
   "build": {
     "appId": "com.equimac.app",
     "productName": "EquiMac",
     "mac": {
       "target": [
-        "dmg"
+        "dmg",
+        "zip"
       ],
       "category": "public.app-category.utilities",
       "icon": "build/icon.icns"
@@ -49,6 +57,11 @@
     "files": [
       "dist/**/*",
       "package.json"
-    ]
+    ],
+    "publish": {
+      "provider": "github",
+      "owner": "ClaudieFaukan",
+      "repo": "EquiMac"
+    }
   }
 }
