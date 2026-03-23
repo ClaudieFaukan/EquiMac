@@ -1,10 +1,11 @@
-import { useState, useCallback, useRef } from 'react';
-import { calculateEquity, type EquityResult, type EquityInput } from '../../engine/equity';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { type EquityResult, type EquityInput } from '../../engine/equity';
 import { parseRangeNotation, rangeToNotation, countCombos, type RangeMatrix } from '../../engine/ranges';
 import { type Card } from '../../engine/evaluator';
 import { PlayerPanel } from './PlayerPanel';
 import { ResultsBar } from './ResultsBar';
 import { BoardSelector } from '../BoardSelector/BoardSelector';
+import { DeadCards } from './DeadCards';
 
 interface PlayerState {
   notation: string;
@@ -24,10 +25,22 @@ export function EquityCalculator({ onOpenGrid, externalRange }: EquityCalculator
     { notation: '', range: parseRangeNotation('') },
   ]);
   const [board, setBoard] = useState<Card[]>([]);
+  const [deadCards, setDeadCards] = useState<Card[]>([]);
   const [result, setResult] = useState<EquityResult | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const [activePlayer, setActivePlayer] = useState<number>(0);
   const [iterations, setIterations] = useState(100000);
+  const workerRef = useRef<Worker | null>(null);
+
+  // Create worker on mount
+  useEffect(() => {
+    const worker = new Worker(
+      new URL('../../../workers/equity-worker.ts', import.meta.url),
+      { type: 'module' }
+    );
+    workerRef.current = worker;
+    return () => worker.terminate();
+  }, []);
 
   // Apply external range from grid
   if (externalRange) {
@@ -68,28 +81,34 @@ export function EquityCalculator({ onOpenGrid, externalRange }: EquityCalculator
     setResult(null);
   }, [players.length]);
 
-  // Collect all used cards (board cards)
-  const usedCards = new Set<number>(board);
+  // Collect all used cards (board + dead cards)
+  const usedCards = new Set<number>([...board, ...deadCards]);
 
   const canCalculate = players.filter(p => countCombos(p.range) > 0).length >= 2;
 
   const handleCalculate = useCallback(() => {
-    if (!canCalculate) return;
+    if (!canCalculate || !workerRef.current) return;
     setIsCalculating(true);
 
-    // Use setTimeout to let UI update before heavy computation
-    setTimeout(() => {
-      const input: EquityInput = {
-        ranges: players.map(p => p.range),
-        board,
-        deadCards: [],
-        iterations,
-      };
-      const res = calculateEquity(input);
-      setResult(res);
+    const worker = workerRef.current;
+    const input: EquityInput = {
+      ranges: players.map(p => p.range),
+      board,
+      deadCards,
+      iterations,
+    };
+
+    const handler = (e: MessageEvent) => {
+      if (e.data.type === 'result') {
+        setResult(e.data.result);
+      }
       setIsCalculating(false);
-    }, 10);
-  }, [players, board, iterations, canCalculate]);
+      worker.removeEventListener('message', handler);
+    };
+
+    worker.addEventListener('message', handler);
+    worker.postMessage({ type: 'calculate', input });
+  }, [players, board, deadCards, iterations, canCalculate]);
 
   const playerLabels = players.map((_, i) => `Joueur ${i + 1}`);
 
@@ -134,6 +153,13 @@ export function EquityCalculator({ onOpenGrid, externalRange }: EquityCalculator
       <BoardSelector
         board={board}
         onBoardChange={setBoard}
+        usedCards={usedCards}
+      />
+
+      {/* Dead cards */}
+      <DeadCards
+        deadCards={deadCards}
+        onDeadCardsChange={setDeadCards}
         usedCards={usedCards}
       />
 

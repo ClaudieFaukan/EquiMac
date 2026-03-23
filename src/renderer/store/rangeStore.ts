@@ -15,6 +15,7 @@ interface RangeState {
   range: RangeMatrix;
   sliderLow: number;
   sliderHigh: number;
+  brushWeight: number; // 0-1, weight for brush mode
   // Undo/redo stacks
   undoStack: RangeMatrix[];
   redoStack: RangeMatrix[];
@@ -34,6 +35,7 @@ interface RangeState {
   setSliderLow: (value: number) => void;
   setSliderHigh: (value: number) => void;
   applySlider: (low: number, high: number) => void;
+  setBrushWeight: (weight: number) => void;
   pushUndo: () => void;
   undo: () => void;
   redo: () => void;
@@ -43,6 +45,7 @@ export const useRangeStore = create<RangeState>((set, get) => ({
   range: createEmptyRange(),
   sliderLow: 0,
   sliderHigh: 0,
+  brushWeight: 1,
   undoStack: [],
   redoStack: [],
 
@@ -107,6 +110,7 @@ export const useRangeStore = create<RangeState>((set, get) => ({
 
   setSliderLow: (value) => set({ sliderLow: value }),
   setSliderHigh: (value) => set({ sliderHigh: value }),
+  setBrushWeight: (weight) => set({ brushWeight: Math.max(0, Math.min(1, weight)) }),
 
   applySlider: (low, high) => {
     const state = get();

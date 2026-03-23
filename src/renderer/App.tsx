@@ -3,6 +3,7 @@ import { RangeGrid } from './components/RangeGrid/RangeGrid';
 import { RangeStats } from './components/RangeGrid/RangeStats';
 import { PercentageSlider } from './components/PercentageSlider/PercentageSlider';
 import { EquityCalculator } from './components/EquityCalculator/EquityCalculator';
+import { BrushWeight } from './components/RangeGrid/BrushWeight';
 import { useRangeStore } from './store/rangeStore';
 import { type RangeMatrix } from './engine/ranges';
 
@@ -43,6 +44,7 @@ export default function App() {
           </div>
           <RangeGrid />
           <PercentageSlider />
+          <BrushWeight />
           <RangeStats />
         </div>
 

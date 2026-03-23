@@ -9,6 +9,7 @@ export function RangeGrid() {
   const paintCell = useRangeStore((s) => s.paintCell);
   const toggleCell = useRangeStore((s) => s.toggleCell);
   const pushUndo = useRangeStore((s) => s.pushUndo);
+  const brushWeight = useRangeStore((s) => s.brushWeight);
 
   const [isDragging, setIsDragging] = useState(false);
   const paintValueRef = useRef<number>(1);
@@ -23,8 +24,8 @@ export function RangeGrid() {
       if (e.button === 2) return; // right click handled by context menu
       e.preventDefault();
       pushUndo();
-      // Toggle: if currently selected, paint 0; else paint 1
-      const newValue = range[row][col] > 0 ? 0 : 1;
+      // Toggle: if currently selected, paint 0; else paint brushWeight
+      const newValue = range[row][col] > 0 ? 0 : brushWeight;
       paintValueRef.current = newValue;
       paintCell(row, col, newValue);
       setIsDragging(true);
