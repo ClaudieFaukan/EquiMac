@@ -1,0 +1,54 @@
+{
+  "name": "equimac",
+  "version": "0.1.0",
+  "description": "Equilab clone for macOS - Poker equity calculator",
+  "main": "dist/main/main.js",
+  "scripts": {
+    "dev": "tsc -p tsconfig.main.json && concurrently -n vite,tsc,electron -c green,blue,yellow \"vite\" \"tsc -p tsconfig.main.json --watch\" \"wait-on http://localhost:5173 && electron .\"",
+    "dev:vite": "vite",
+    "dev:electron": "tsc -p tsconfig.main.json && wait-on http://localhost:5173 && electron .",
+    "build": "tsc -p tsconfig.main.json && vite build",
+    "build:mac": "npm run build && electron-builder --mac",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "zustand": "^5.0.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.3",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@vitejs/plugin-react": "^4.3.4",
+    "@vitejs/plugin-react-swc": "^3.7.0",
+    "autoprefixer": "^10.4.20",
+    "concurrently": "^9.1.2",
+    "electron": "^35.1.2",
+    "electron-builder": "^25.1.8",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwindcss": "^4.1.3",
+    "typescript": "^5.7.3",
+    "vite": "^6.2.4",
+    "vitest": "^3.0.9",
+    "wait-on": "^9.0.4"
+  },
+  "build": {
+    "appId": "com.equimac.app",
+    "productName": "EquiMac",
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.utilities",
+      "icon": "build/icon.icns"
+    },
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ]
+  }
+}
