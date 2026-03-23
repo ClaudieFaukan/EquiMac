@@ -63,6 +63,16 @@ Download the latest version from the [Releases page](https://github.com/ClaudieF
 
 Telecharger la derniere version sur la [page Releases](https://github.com/ClaudieFaukan/EquiMac/releases).
 
+> **macOS Gatekeeper warning / Avertissement macOS Gatekeeper**
+>
+> If macOS displays *"Apple could not verify that EquiMac does not contain malware"*, run the following command in Terminal then relaunch the app:
+>
+> Si macOS affiche *« Apple n'a pas pu confirmer que EquiMac ne contenait pas de logiciel malveillant »*, executez la commande suivante dans le Terminal puis relancez l'application :
+>
+> ```bash
+> xattr -cr /Applications/EquiMac.app
+> ```
+
 ### From source / Depuis les sources
 
 ```bash
