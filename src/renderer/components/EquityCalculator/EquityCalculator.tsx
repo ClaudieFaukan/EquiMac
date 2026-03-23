@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { type EquityResult, type EquityInput } from '../../engine/equity';
-import { parseRangeNotation, rangeToNotation, countCombos, type RangeMatrix } from '../../engine/ranges';
+import { parseRangeNotation, rangeToNotation, countCombos, cloneRange, type RangeMatrix } from '../../engine/ranges';
 import { type Card } from '../../engine/evaluator';
 import type { HeatmapResult } from '../../engine/heatmap';
 import { PlayerPanel } from './PlayerPanel';
@@ -34,6 +34,7 @@ export function EquityCalculator({ onOpenGrid, externalRange, onHeatmapResult }:
   const [iterations, setIterations] = useState(100000);
   const workerRef = useRef<Worker | null>(null);
   const heatmapWorkerRef = useRef<Worker | null>(null);
+  const lastAppliedRangeRef = useRef<RangeMatrix | null>(null);
 
   useEffect(() => {
     const worker = new Worker(
@@ -49,27 +50,46 @@ export function EquityCalculator({ onOpenGrid, externalRange, onHeatmapResult }:
     return () => { worker.terminate(); heatWorker.terminate(); };
   }, []);
 
-  // Apply external range from grid
-  if (externalRange) {
+  // Apply external range from grid — only when the range object actually changes
+  useEffect(() => {
+    if (!externalRange) return;
     const { playerIndex, range } = externalRange;
-    if (playerIndex >= 0 && playerIndex < players.length) {
-      const notation = rangeToNotation(range);
-      if (notation !== players[playerIndex].notation) {
-        const newPlayers = [...players];
-        newPlayers[playerIndex] = { notation, range };
-        setPlayers(newPlayers);
-      }
-    }
-  }
+    if (playerIndex < 0 || playerIndex >= players.length) return;
+    // Skip if we already applied this exact range
+    if (lastAppliedRangeRef.current === range) return;
+    lastAppliedRangeRef.current = range;
 
-  const updatePlayerNotation = useCallback((index: number, notation: string) => {
+    const notation = rangeToNotation(range);
     setPlayers(prev => {
       const next = [...prev];
-      next[index] = { notation, range: parseRangeNotation(notation) };
+      next[playerIndex] = { notation, range: cloneRange(range) };
+      return next;
+    });
+  }, [externalRange]);
+
+  const updatePlayerNotation = useCallback((index: number, notation: string) => {
+    const newRange = parseRangeNotation(notation);
+    setPlayers(prev => {
+      const next = [...prev];
+      next[index] = { notation, range: newRange };
       return next;
     });
     setResult(null);
-  }, []);
+    // Sync the grid if this player is active
+    if (index === activePlayer) {
+      // Mark this range as already applied so the sync effect doesn't overwrite
+      lastAppliedRangeRef.current = newRange;
+      onOpenGrid?.(index, newRange);
+    }
+  }, [activePlayer, onOpenGrid]);
+
+  const handleActivatePlayer = useCallback((index: number) => {
+    if (index === activePlayer) return;
+    setActivePlayer(index);
+    // Load this player's range into the grid
+    const playerRange = players[index].range;
+    onOpenGrid?.(index, playerRange);
+  }, [activePlayer, players, onOpenGrid]);
 
   const handleOpenGrid = useCallback((index: number) => {
     setActivePlayer(index);
@@ -153,6 +173,7 @@ export function EquityCalculator({ onOpenGrid, externalRange, onHeatmapResult }:
             notation={player.notation}
             onNotationChange={(n) => updatePlayerNotation(i, n)}
             onOpenGrid={() => handleOpenGrid(i)}
+            onActivate={() => handleActivatePlayer(i)}
             result={result ?? undefined}
             isActive={activePlayer === i}
             comboCount={countCombos(player.range)}

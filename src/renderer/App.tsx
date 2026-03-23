@@ -3,16 +3,22 @@ import { RangeGrid } from './components/RangeGrid/RangeGrid';
 import { RangeStats } from './components/RangeGrid/RangeStats';
 import { PercentageSlider } from './components/PercentageSlider/PercentageSlider';
 import { EquityCalculator } from './components/EquityCalculator/EquityCalculator';
+import { EquityTrainer } from './components/EquityTrainer/EquityTrainer';
 import { BrushWeight } from './components/RangeGrid/BrushWeight';
+import { PresetSelector } from './components/RangeGrid/PresetSelector';
 import { HeatmapOverlay } from './components/RangeGrid/HeatmapOverlay';
+import { RangeManager } from './components/RangeManager/RangeManager';
 import { useRangeStore } from './store/rangeStore';
 import { type RangeMatrix } from './engine/ranges';
 import type { HeatmapResult } from './engine/heatmap';
+
+type RightTab = 'calculator' | 'trainer' | 'ranges';
 
 export default function App() {
   const [activePlayer, setActivePlayer] = useState<number>(0);
   const [externalRange, setExternalRange] = useState<{ playerIndex: number; range: RangeMatrix } | null>(null);
   const [heatmap, setHeatmap] = useState<HeatmapResult | null>(null);
+  const [rightTab, setRightTab] = useState<RightTab>('calculator');
 
   const range = useRangeStore((s) => s.range);
   const setRange = useRangeStore((s) => s.setRange);
@@ -20,7 +26,7 @@ export default function App() {
   const handleOpenGrid = useCallback((playerIndex: number, playerRange: RangeMatrix) => {
     setActivePlayer(playerIndex);
     setRange(playerRange);
-    setHeatmap(null); // Clear heatmap when switching to grid editing
+    setHeatmap(null);
   }, [setRange]);
 
   useEffect(() => {
@@ -65,8 +71,11 @@ export default function App() {
             </>
           ) : (
             <>
-              <div className="text-[10px] text-zinc-500 uppercase tracking-wider">
-                Range — Joueur {activePlayer + 1}
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-zinc-500 uppercase tracking-wider">
+                  Range — Joueur {activePlayer + 1}
+                </span>
+                <PresetSelector />
               </div>
               <RangeGrid />
               <PercentageSlider />
@@ -76,13 +85,45 @@ export default function App() {
           )}
         </div>
 
-        {/* Right panel: Equity calculator */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-          <EquityCalculator
-            onOpenGrid={handleOpenGrid}
-            externalRange={externalRange}
-            onHeatmapResult={handleHeatmapResult}
-          />
+        {/* Right panel: tabs */}
+        <div className="flex-1 flex flex-col min-w-0 min-h-0">
+          {/* Tab bar */}
+          <div className="flex gap-1 mb-3 shrink-0">
+            {([
+              { id: 'calculator' as const, label: 'Calculateur' },
+              { id: 'trainer' as const, label: 'Quiz' },
+              { id: 'ranges' as const, label: 'Ranges' },
+            ]).map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setRightTab(tab.id)}
+                className={`px-3 py-1.5 rounded-t text-xs font-semibold transition-colors ${
+                  rightTab === tab.id
+                    ? 'bg-zinc-800 text-zinc-100 border border-zinc-700 border-b-zinc-800'
+                    : 'bg-zinc-900 text-zinc-500 hover:text-zinc-300'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Tab content */}
+          <div className="flex-1 overflow-y-auto">
+            {rightTab === 'calculator' && (
+              <EquityCalculator
+                onOpenGrid={handleOpenGrid}
+                externalRange={externalRange}
+                onHeatmapResult={handleHeatmapResult}
+              />
+            )}
+            {rightTab === 'trainer' && (
+              <EquityTrainer />
+            )}
+            {rightTab === 'ranges' && (
+              <RangeManager />
+            )}
+          </div>
         </div>
       </div>
     </div>

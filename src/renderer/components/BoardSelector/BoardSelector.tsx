@@ -67,7 +67,18 @@ export function BoardSelector({ board, onBoardChange, usedCards }: BoardSelector
 
   return (
     <div>
-      <div className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Board</div>
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-[10px] text-zinc-500 uppercase tracking-wider">Board</span>
+        {board.length > 0 && (
+          <button
+            onClick={() => onBoardChange([])}
+            className="text-[10px] text-zinc-600 hover:text-zinc-300 transition-colors"
+            title="Vider le board"
+          >
+            ✕ clear
+          </button>
+        )}
+      </div>
       <div className="flex gap-1">
         {/* Flop */}
         <div className="flex gap-0.5">

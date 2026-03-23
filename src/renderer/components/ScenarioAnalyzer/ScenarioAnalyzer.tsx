@@ -84,13 +84,24 @@ export function ScenarioAnalyzer({ ranges, board, deadCards }: ScenarioAnalyzerP
         <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
           Analyseur — Cartes du {boardLabel}
         </span>
-        <button
-          onClick={handleAnalyze}
-          disabled={!canAnalyze || isCalculating}
-          className="px-3 py-1 rounded text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-        >
-          {isCalculating ? 'Analyse...' : 'Analyser'}
-        </button>
+        <div className="flex gap-2">
+          {result && (
+            <button
+              onClick={() => setResult(null)}
+              className="px-2 py-1 rounded text-xs text-zinc-500 hover:text-zinc-200 hover:bg-zinc-700 transition-colors"
+              title="Fermer les résultats"
+            >
+              ✕
+            </button>
+          )}
+          <button
+            onClick={handleAnalyze}
+            disabled={!canAnalyze || isCalculating}
+            className="px-3 py-1 rounded text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            {isCalculating ? 'Analyse...' : 'Analyser'}
+          </button>
+        </div>
       </div>
 
       {!canAnalyze && (

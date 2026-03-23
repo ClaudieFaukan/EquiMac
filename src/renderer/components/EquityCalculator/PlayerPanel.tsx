@@ -1,4 +1,5 @@
 import type { EquityResult } from '../../engine/equity';
+import { MiniPresetSelector } from './MiniPresetSelector';
 
 interface PlayerPanelProps {
   index: number;
@@ -6,6 +7,7 @@ interface PlayerPanelProps {
   notation: string;
   onNotationChange: (notation: string) => void;
   onOpenGrid: () => void;
+  onActivate: () => void;
   result?: EquityResult;
   isActive: boolean;
   comboCount: number;
@@ -17,6 +19,7 @@ export function PlayerPanel({
   notation,
   onNotationChange,
   onOpenGrid,
+  onActivate,
   result,
   isActive,
   comboCount,
@@ -45,9 +48,20 @@ export function PlayerPanel({
           type="text"
           value={notation}
           onChange={(e) => onNotationChange(e.target.value)}
+          onFocus={onActivate}
           placeholder="AA, AKs, QQ+..."
           className="flex-1 bg-zinc-900 border border-zinc-600 rounded px-2 py-1.5 text-xs font-mono-poker text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-emerald-600"
         />
+        {notation && (
+          <button
+            onClick={() => onNotationChange('')}
+            className="px-2 py-1.5 rounded text-xs text-zinc-500 hover:text-zinc-200 hover:bg-zinc-700 transition-colors"
+            title="Vider"
+          >
+            ✕
+          </button>
+        )}
+        <MiniPresetSelector onSelect={onNotationChange} />
         <button
           onClick={onOpenGrid}
           className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors ${

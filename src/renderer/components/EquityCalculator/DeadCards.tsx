@@ -32,7 +32,18 @@ export function DeadCards({ deadCards, onDeadCardsChange, usedCards }: DeadCards
 
   return (
     <div>
-      <div className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Dead Cards</div>
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-[10px] text-zinc-500 uppercase tracking-wider">Dead Cards</span>
+        {deadCards.length > 0 && (
+          <button
+            onClick={() => onDeadCardsChange([])}
+            className="text-[10px] text-zinc-600 hover:text-zinc-300 transition-colors"
+            title="Vider les dead cards"
+          >
+            ✕ clear
+          </button>
+        )}
+      </div>
       <div className="flex gap-1 flex-wrap items-center">
         {deadCards.map((card, i) => {
           const ranks = '23456789TJQKA';
