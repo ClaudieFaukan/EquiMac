@@ -8,12 +8,13 @@ import { BrushWeight } from './components/RangeGrid/BrushWeight';
 import { PresetSelector } from './components/RangeGrid/PresetSelector';
 import { HeatmapOverlay } from './components/RangeGrid/HeatmapOverlay';
 import { RangeManager } from './components/RangeManager/RangeManager';
+import { EquityFilter } from './components/EquityFilter/EquityFilter';
 import { useRangeStore } from './store/rangeStore';
 import { useThemeStore } from './store/themeStore';
 import { rangeToNotation, type RangeMatrix } from './engine/ranges';
 import type { HeatmapResult } from './engine/heatmap';
 
-type RightTab = 'calculator' | 'trainer' | 'ranges';
+type RightTab = 'calculator' | 'trainer' | 'ranges' | 'filter';
 
 export default function App() {
   const [activePlayer, setActivePlayer] = useState<number>(0);
@@ -180,6 +181,7 @@ export default function App() {
             {([
               { id: 'calculator' as const, label: 'Calculateur' },
               { id: 'trainer' as const, label: 'Quiz' },
+              { id: 'filter' as const, label: 'Filtre' },
               { id: 'ranges' as const, label: 'Ranges' },
             ]).map(tab => (
               <button
@@ -207,6 +209,12 @@ export default function App() {
             )}
             {rightTab === 'trainer' && (
               <EquityTrainer />
+            )}
+            {rightTab === 'filter' && (
+              <EquityFilter onApplyResult={(range) => {
+                setRange(range);
+                setHeatmap(null);
+              }} />
             )}
             {rightTab === 'ranges' && (
               <RangeManager />

@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import type { EquityResult } from '../../engine/equity';
+import { selectTopPercent, rangeToNotation } from '../../engine/ranges';
 import { MiniPresetSelector } from './MiniPresetSelector';
 
 interface PlayerPanelProps {
@@ -27,6 +29,20 @@ export function PlayerPanel({
   const equity = result?.equity[index];
   const win = result?.wins[index];
   const tie = result?.ties[index];
+  const [topPct, setTopPct] = useState('');
+
+  const handleTopPctApply = () => {
+    const val = parseFloat(topPct);
+    if (isNaN(val) || val <= 0 || val > 100) return;
+    const range = selectTopPercent(val);
+    const notation = rangeToNotation(range);
+    onNotationChange(notation);
+    setTopPct('');
+  };
+
+  const handleTopPctKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleTopPctApply();
+  };
 
   return (
     <div className={`rounded-lg border p-3 transition-colors ${
@@ -74,13 +90,33 @@ export function PlayerPanel({
         </button>
       </div>
 
-      {result && (
-        <div className="flex gap-3 mt-2 text-[10px] text-zinc-500">
-          <span>Win: <span className="text-zinc-300">{((win ?? 0) * 100).toFixed(1)}%</span></span>
-          <span>Tie: <span className="text-zinc-300">{((tie ?? 0) * 100).toFixed(1)}%</span></span>
-          <span>{comboCount} combos</span>
-        </div>
-      )}
+      {/* Top % quick input */}
+      <div className="flex items-center gap-2 mt-2">
+        <span className="text-[10px] text-zinc-500">Top</span>
+        <input
+          type="text"
+          value={topPct}
+          onChange={(e) => setTopPct(e.target.value)}
+          onKeyDown={handleTopPctKeyDown}
+          onFocus={onActivate}
+          placeholder="%"
+          className="w-12 bg-zinc-900 border border-zinc-700 rounded px-1.5 py-0.5 text-[10px] font-mono-poker text-zinc-300 text-center placeholder-zinc-600 focus:outline-none focus:border-emerald-600"
+        />
+        <button
+          onClick={handleTopPctApply}
+          disabled={!topPct}
+          className="px-2 py-0.5 rounded text-[10px] font-semibold bg-zinc-700 text-zinc-300 hover:bg-zinc-600 disabled:opacity-30 transition-colors"
+        >
+          Appliquer
+        </button>
+        {result && (
+          <div className="flex gap-3 ml-auto text-[10px] text-zinc-500">
+            <span>Win: <span className="text-zinc-300">{((win ?? 0) * 100).toFixed(1)}%</span></span>
+            <span>Tie: <span className="text-zinc-300">{((tie ?? 0) * 100).toFixed(1)}%</span></span>
+            <span>{comboCount} combos</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
