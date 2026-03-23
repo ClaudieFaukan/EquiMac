@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useRangeLibraryStore } from '../../store/rangeLibraryStore';
+import { useT } from '../../hooks/useT';
 
 interface MiniPresetSelectorProps {
   onSelect: (notation: string) => void;
 }
 
 export function MiniPresetSelector({ onSelect }: MiniPresetSelectorProps) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [expandedCat, setExpandedCat] = useState<number | null>(null);
   const getActivePresets = useRangeLibraryStore(s => s.getActivePresets);
@@ -23,9 +25,9 @@ export function MiniPresetSelector({ onSelect }: MiniPresetSelectorProps) {
       <button
         onClick={() => setOpen(!open)}
         className="px-2 py-1.5 rounded text-[10px] font-semibold bg-zinc-700 text-zinc-400 hover:bg-zinc-600 hover:text-zinc-200 transition-colors"
-        title="Charger un range prédéfini"
+        title={t('load_preset')}
       >
-        Presets
+        {t('presets')}
       </button>
 
       {open && (
@@ -33,7 +35,7 @@ export function MiniPresetSelector({ onSelect }: MiniPresetSelectorProps) {
           <div className="fixed inset-0 z-40" onClick={() => { setOpen(false); setExpandedCat(null); }} />
           <div className="absolute right-0 top-full mt-1 z-50 w-60 max-h-72 overflow-y-auto bg-zinc-800 border border-zinc-600 rounded-lg shadow-xl">
             {activePresets.length === 0 && (
-              <div className="px-3 py-2 text-[10px] text-zinc-600">Aucun preset actif. Activez-les dans l'onglet Ranges.</div>
+              <div className="px-3 py-2 text-[10px] text-zinc-600">{t('no_active_presets')}</div>
             )}
             {activePresets.map((cat, ci) => (
               <div key={ci}>

@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useRangeLibraryStore } from '../../store/rangeLibraryStore';
 import { useRangeStore } from '../../store/rangeStore';
+import { useT } from '../../hooks/useT';
 
 export function PresetSelector() {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [expandedCat, setExpandedCat] = useState<number | null>(null);
   const importNotation = useRangeStore((s) => s.importNotation);
@@ -21,7 +23,7 @@ export function PresetSelector() {
         onClick={() => setOpen(!open)}
         className="px-3 py-1 rounded text-[10px] font-semibold bg-zinc-700 text-zinc-300 hover:bg-zinc-600 transition-colors"
       >
-        Presets
+        {t('presets')}
       </button>
 
       {open && (

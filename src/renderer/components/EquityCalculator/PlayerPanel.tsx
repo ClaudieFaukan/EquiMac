@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { EquityResult } from '../../engine/equity';
 import { selectTopPercent, rangeToNotation } from '../../engine/ranges';
 import { MiniPresetSelector } from './MiniPresetSelector';
+import { useT } from '../../hooks/useT';
 
 interface PlayerPanelProps {
   index: number;
@@ -26,6 +27,7 @@ export function PlayerPanel({
   isActive,
   comboCount,
 }: PlayerPanelProps) {
+  const t = useT();
   const equity = result?.equity[index];
   const win = result?.wins[index];
   const tie = result?.ties[index];
@@ -72,7 +74,7 @@ export function PlayerPanel({
           <button
             onClick={() => onNotationChange('')}
             className="px-2 py-1.5 rounded text-xs text-zinc-500 hover:text-zinc-200 hover:bg-zinc-700 transition-colors"
-            title="Vider"
+            title={t('clear')}
           >
             ✕
           </button>
@@ -86,7 +88,7 @@ export function PlayerPanel({
               : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
           }`}
         >
-          Grille
+          {t('grid')}
         </button>
       </div>
 
@@ -107,7 +109,7 @@ export function PlayerPanel({
           disabled={!topPct}
           className="px-2 py-0.5 rounded text-[10px] font-semibold bg-zinc-700 text-zinc-300 hover:bg-zinc-600 disabled:opacity-30 transition-colors"
         >
-          Appliquer
+          {t('apply')}
         </button>
         {result && (
           <div className="flex gap-3 ml-auto text-[10px] text-zinc-500">

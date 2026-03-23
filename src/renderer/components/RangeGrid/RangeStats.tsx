@@ -1,7 +1,9 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useRangeStore } from '../../store/rangeStore';
+import { useT } from '../../hooks/useT';
 
 export function RangeStats() {
+  const t = useT();
   const getCombos = useRangeStore((s) => s.getCombos);
   const getPercentage = useRangeStore((s) => s.getPercentage);
   const getNotation = useRangeStore((s) => s.getNotation);
@@ -74,7 +76,7 @@ export function RangeStats() {
         onChange={handleTextChange}
         onFocus={() => setIsEditing(true)}
         onBlur={() => setIsEditing(false)}
-        placeholder="Entrez une range: QQ+, AKs, ATs+, KQs..."
+        placeholder={t('enter_range')}
         spellCheck={false}
       />
     </div>

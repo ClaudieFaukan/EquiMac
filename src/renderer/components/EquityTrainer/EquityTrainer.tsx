@@ -7,6 +7,7 @@ import { useQuizStore } from '../../store/quizStore';
 import { type Questionnaire } from '../../data/quiz-types';
 import { ActionQuiz } from './ActionQuiz';
 import { QuizManager } from './QuizManager';
+import { useT } from '../../hooks/useT';
 
 const SUITS_MAP: Suit[] = ['s', 'h', 'd', 'c'];
 
@@ -78,6 +79,7 @@ function buildHeroRange(cards: [Card, Card]) {
 type Phase = 'menu' | 'equity-setup' | 'equity-playing' | 'equity-results' | 'action-playing' | 'manage';
 
 export function EquityTrainer() {
+  const t = useT();
   const [phase, setPhase] = useState<Phase>('menu');
   const [mode, setMode] = useState<'preflop' | 'flop'>('preflop');
   const [totalQuestions, setTotalQuestions] = useState(10);
@@ -197,17 +199,17 @@ export function EquityTrainer() {
     return (
       <div className="flex flex-col gap-4">
         <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-          Résultats — {mode === 'preflop' ? 'Preflop' : 'Postflop'}
+          {t('results')} — {mode === 'preflop' ? 'Preflop' : 'Postflop'}
         </span>
         <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-5 space-y-4 text-center">
           <div className={`text-3xl font-bold font-mono-poker ${avgError <= 5 ? 'text-emerald-400' : avgError <= 10 ? 'text-amber-400' : 'text-red-400'}`}>
             {avgError.toFixed(1)}%
           </div>
-          <div className="text-sm text-zinc-400">Écart moyen sur {history.length} questions</div>
+          <div className="text-sm text-zinc-400">{t('avg_error_over')} {history.length} {t('questions')}</div>
           <div className="flex justify-center gap-6 text-sm">
-            <div className="text-center"><div className="text-emerald-400 font-bold text-lg">{excellentCount}</div><div className="text-[10px] text-zinc-500">Excellent (&le;5%)</div></div>
-            <div className="text-center"><div className="text-amber-400 font-bold text-lg">{okCount}</div><div className="text-[10px] text-zinc-500">Pas mal (5-10%)</div></div>
-            <div className="text-center"><div className="text-red-400 font-bold text-lg">{badCount}</div><div className="text-[10px] text-zinc-500">À travailler (&gt;10%)</div></div>
+            <div className="text-center"><div className="text-emerald-400 font-bold text-lg">{excellentCount}</div><div className="text-[10px] text-zinc-500">{t('excellent')} (&le;5%)</div></div>
+            <div className="text-center"><div className="text-amber-400 font-bold text-lg">{okCount}</div><div className="text-[10px] text-zinc-500">{t('not_bad')} (5-10%)</div></div>
+            <div className="text-center"><div className="text-red-400 font-bold text-lg">{badCount}</div><div className="text-[10px] text-zinc-500">{t('needs_work')} (&gt;10%)</div></div>
           </div>
         </div>
         <div className="max-h-48 overflow-y-auto rounded border border-zinc-700">
@@ -215,10 +217,10 @@ export function EquityTrainer() {
             <thead className="bg-zinc-800 sticky top-0">
               <tr>
                 <th className="text-left px-2 py-1 text-zinc-500 font-normal">#</th>
-                <th className="text-left px-2 py-1 text-zinc-500 font-normal">Main</th>
-                <th className="text-right px-2 py-1 text-zinc-500 font-normal">Réponse</th>
-                <th className="text-right px-2 py-1 text-zinc-500 font-normal">Estimation</th>
-                <th className="text-right px-2 py-1 text-zinc-500 font-normal">Écart</th>
+                <th className="text-left px-2 py-1 text-zinc-500 font-normal">{t('hand')}</th>
+                <th className="text-right px-2 py-1 text-zinc-500 font-normal">{t('answer')}</th>
+                <th className="text-right px-2 py-1 text-zinc-500 font-normal">{t('guess')}</th>
+                <th className="text-right px-2 py-1 text-zinc-500 font-normal">{t('error')}</th>
               </tr>
             </thead>
             <tbody>
@@ -234,7 +236,7 @@ export function EquityTrainer() {
             </tbody>
           </table>
         </div>
-        <button onClick={backToMenu} className="w-full py-2.5 rounded-lg font-bold text-sm bg-purple-600 hover:bg-purple-500 text-white transition-colors">Retour</button>
+        <button onClick={backToMenu} className="w-full py-2.5 rounded-lg font-bold text-sm bg-purple-600 hover:bg-purple-500 text-white transition-colors">{t('back')}</button>
       </div>
     );
   }
@@ -245,7 +247,7 @@ export function EquityTrainer() {
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">{mode === 'preflop' ? 'Preflop' : 'Postflop'} — {currentIndex + 1}/{totalQuestions}</span>
-          <button onClick={backToMenu} className="text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors">Quitter</button>
+          <button onClick={backToMenu} className="text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors">{t('quit')}</button>
         </div>
         <div className="h-1 bg-zinc-700 rounded-full overflow-hidden">
           <div className="h-full bg-purple-600 transition-all duration-300" style={{ width: `${((currentIndex + (revealed ? 1 : 0)) / totalQuestions) * 100}%` }} />
@@ -253,7 +255,7 @@ export function EquityTrainer() {
         {round && (
           <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-4 space-y-3">
             <div className="text-center">
-              <span className="text-[10px] text-zinc-500 uppercase tracking-wider block mb-1">Votre main</span>
+              <span className="text-[10px] text-zinc-500 uppercase tracking-wider block mb-1">{t('your_hand')}</span>
               <span className="text-2xl"><CardDisplay card={round.heroCards[0]} suitColors={suitColors} /> <CardDisplay card={round.heroCards[1]} suitColors={suitColors} /></span>
             </div>
             {round.board.length > 0 && (
@@ -263,28 +265,28 @@ export function EquityTrainer() {
               </div>
             )}
             <div className="text-center">
-              <span className="text-[10px] text-zinc-500 uppercase tracking-wider block mb-1">Range adverse</span>
+              <span className="text-[10px] text-zinc-500 uppercase tracking-wider block mb-1">Opponent range</span>
               <span className="text-xs font-mono-poker text-zinc-300">{round.villainNotation}</span>
             </div>
             {!revealed && !isCalculating && (
               <div className="space-y-2">
-                <div className="text-center text-sm text-zinc-400">Estimez votre equity : <span className="ml-2 text-lg font-bold text-purple-400 font-mono-poker">{guess}%</span></div>
+                <div className="text-center text-sm text-zinc-400">{t('estimate_equity')} <span className="ml-2 text-lg font-bold text-purple-400 font-mono-poker">{guess}%</span></div>
                 <input type="range" min={0} max={100} value={guess} onChange={e => setGuess(Number(e.target.value))} className="w-full accent-purple-500" />
-                <button onClick={handleReveal} className="w-full py-2 rounded-lg font-bold text-sm bg-purple-600 hover:bg-purple-500 text-white transition-colors">Valider</button>
+                <button onClick={handleReveal} className="w-full py-2 rounded-lg font-bold text-sm bg-purple-600 hover:bg-purple-500 text-white transition-colors">{t('submit')}</button>
               </div>
             )}
-            {isCalculating && <div className="text-center text-sm text-zinc-500 py-4">Chargement...</div>}
+            {isCalculating && <div className="text-center text-sm text-zinc-500 py-4">{t('loading')}</div>}
             {revealed && round.error !== null && (
               <div className="space-y-3">
                 <div className="text-center space-y-1">
-                  <div className="text-sm">Réponse : <span className="font-bold text-emerald-400 font-mono-poker">{round.correctEquity}%</span></div>
-                  <div className="text-sm">Estimation : <span className="font-bold text-purple-400 font-mono-poker">{round.guessedEquity}%</span></div>
+                  <div className="text-sm">{t('answer')}: <span className="font-bold text-emerald-400 font-mono-poker">{round.correctEquity}%</span></div>
+                  <div className="text-sm">{t('guess')}: <span className="font-bold text-purple-400 font-mono-poker">{round.guessedEquity}%</span></div>
                   <div className={`text-sm font-bold ${round.error <= 5 ? 'text-emerald-400' : round.error <= 10 ? 'text-amber-400' : 'text-red-400'}`}>
-                    Écart : {round.error.toFixed(1)}% {round.error <= 5 ? '— Excellent !' : round.error <= 10 ? '— Pas mal' : '— À travailler'}
+                    {t('error')}: {round.error.toFixed(1)}% {round.error <= 5 ? `— ${t('excellent')}!` : round.error <= 10 ? `— ${t('not_bad')}` : `— ${t('needs_work')}`}
                   </div>
                 </div>
                 <button onClick={handleNext} className="w-full py-2 rounded-lg font-bold text-sm bg-purple-600 hover:bg-purple-500 text-white transition-colors">
-                  {currentIndex + 1 >= totalQuestions ? 'Voir les résultats' : 'Suivante'}
+                  {currentIndex + 1 >= totalQuestions ? t('view_results') : t('next')}
                 </button>
               </div>
             )}
@@ -294,7 +296,7 @@ export function EquityTrainer() {
           <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-2">
             <div className="flex justify-between text-[10px] text-zinc-500">
               <span>{history.length}/{totalQuestions}</span>
-              <span>Écart moyen : <span className={`font-bold font-mono-poker ${avgError <= 5 ? 'text-emerald-400' : avgError <= 10 ? 'text-amber-400' : 'text-red-400'}`}>{avgError.toFixed(1)}%</span></span>
+              <span>Average error: <span className={`font-bold font-mono-poker ${avgError <= 5 ? 'text-emerald-400' : avgError <= 10 ? 'text-amber-400' : 'text-red-400'}`}>{avgError.toFixed(1)}%</span></span>
             </div>
           </div>
         )}
@@ -307,11 +309,11 @@ export function EquityTrainer() {
     return (
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Quiz d'equity</span>
-          <button onClick={backToMenu} className="text-[10px] text-zinc-500 hover:text-zinc-300">Retour</button>
+          <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">{t('equity_quiz')}</span>
+          <button onClick={backToMenu} className="text-[10px] text-zinc-500 hover:text-zinc-300">{t('back')}</button>
         </div>
         <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-4 space-y-3">
-          <span className="text-xs text-zinc-400">Nombre de questions</span>
+          <span className="text-xs text-zinc-400">{t('number_of_questions')}</span>
           <div className="flex gap-2">
             {[10, 20].map(n => (
               <button key={n} onClick={() => { setTotalQuestions(n); setCustomCount(''); }}
@@ -319,7 +321,7 @@ export function EquityTrainer() {
             ))}
             <input type="number" min={1} max={99} value={customCount}
               onChange={e => { setCustomCount(e.target.value); const v = parseInt(e.target.value); if (v > 0 && v <= 99) setTotalQuestions(v); }}
-              placeholder="Libre"
+              placeholder={t('custom')}
               className="w-20 bg-zinc-900 border border-zinc-600 rounded px-2 py-2 text-sm font-mono-poker text-zinc-200 placeholder-zinc-600 text-center focus:outline-none focus:border-purple-600" />
           </div>
         </div>
@@ -341,10 +343,10 @@ export function EquityTrainer() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Quiz</span>
+        <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">{t('quiz')}</span>
         <button onClick={() => setPhase('manage')}
           className="px-3 py-1 rounded text-[10px] font-semibold bg-zinc-700 text-zinc-300 hover:bg-zinc-600 transition-colors">
-          Gérer
+          {t('manage')}
         </button>
       </div>
 
@@ -353,14 +355,14 @@ export function EquityTrainer() {
         onClick={() => setPhase('equity-setup')}
         className="w-full text-left bg-zinc-800 border border-zinc-700 rounded-lg p-4 hover:border-purple-600 transition-colors group"
       >
-        <div className="text-sm font-semibold text-zinc-200 group-hover:text-purple-400 transition-colors">Quiz d'Equity</div>
-        <div className="text-[10px] text-zinc-500 mt-0.5">Estimez le pourcentage d'equity de votre main vs un range</div>
+        <div className="text-sm font-semibold text-zinc-200 group-hover:text-purple-400 transition-colors">{t('equity_quiz')}</div>
+        <div className="text-[10px] text-zinc-500 mt-0.5">{t('equity_quiz_desc')}</div>
       </button>
 
       {/* Action quizzes */}
       {actionQuizzes.length > 0 && (
         <div className="space-y-1">
-          <span className="text-[10px] text-zinc-600 uppercase tracking-wider">Questionnaires d'actions</span>
+          <span className="text-[10px] text-zinc-600 uppercase tracking-wider">{t('action_quizzes')}</span>
           {actionQuizzes.map(q => (
             <button
               key={q.id}

@@ -3,6 +3,7 @@ import {
   type ActionQuestion, type PokerAction, type Questionnaire,
   ACTION_LABELS, ACTION_COLORS,
 } from '../../data/quiz-types';
+import { useT } from '../../hooks/useT';
 
 interface ActionQuizProps {
   questionnaire: Questionnaire;
@@ -16,6 +17,7 @@ interface ActionResult {
 }
 
 export function ActionQuiz({ questionnaire, onFinish }: ActionQuizProps) {
+  const t = useT();
   const questions = questionnaire.questions ?? [];
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answered, setAnswered] = useState<PokerAction | null>(null);
@@ -48,7 +50,7 @@ export function ActionQuiz({ questionnaire, onFinish }: ActionQuizProps) {
     return (
       <div className="flex flex-col gap-4">
         <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-          Résultats — {questionnaire.name}
+          {t('results')} — {questionnaire.name}
         </span>
 
         <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-5 text-center space-y-3">
@@ -59,7 +61,7 @@ export function ActionQuiz({ questionnaire, onFinish }: ActionQuizProps) {
             {correctCount}/{questions.length}
           </div>
           <div className="text-sm text-zinc-400">
-            {Math.round(correctCount / questions.length * 100)}% de bonnes réponses
+            {Math.round(correctCount / questions.length * 100)}% {t('correct_answers')}
           </div>
         </div>
 
@@ -69,10 +71,10 @@ export function ActionQuiz({ questionnaire, onFinish }: ActionQuizProps) {
             <thead className="bg-zinc-800 sticky top-0">
               <tr>
                 <th className="text-left px-2 py-1 text-zinc-500 font-normal">#</th>
-                <th className="text-left px-2 py-1 text-zinc-500 font-normal">Main</th>
+                <th className="text-left px-2 py-1 text-zinc-500 font-normal">{t('hand')}</th>
                 <th className="text-left px-2 py-1 text-zinc-500 font-normal">Position</th>
-                <th className="text-left px-2 py-1 text-zinc-500 font-normal">Réponse</th>
-                <th className="text-left px-2 py-1 text-zinc-500 font-normal">Correct</th>
+                <th className="text-left px-2 py-1 text-zinc-500 font-normal">{t('answer')}</th>
+                <th className="text-left px-2 py-1 text-zinc-500 font-normal">{t('correct')}</th>
               </tr>
             </thead>
             <tbody>
@@ -95,7 +97,7 @@ export function ActionQuiz({ questionnaire, onFinish }: ActionQuizProps) {
           onClick={onFinish}
           className="w-full py-2.5 rounded-lg font-bold text-sm bg-purple-600 hover:bg-purple-500 text-white transition-colors"
         >
-          Retour
+          {t('back')}
         </button>
       </div>
     );
@@ -114,7 +116,7 @@ export function ActionQuiz({ questionnaire, onFinish }: ActionQuizProps) {
           onClick={onFinish}
           className="text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors"
         >
-          Quitter
+          {t('quit')}
         </button>
       </div>
 
@@ -192,7 +194,7 @@ export function ActionQuiz({ questionnaire, onFinish }: ActionQuizProps) {
             onClick={handleNext}
             className="w-full py-2 rounded-lg font-bold text-sm bg-purple-600 hover:bg-purple-500 text-white transition-colors"
           >
-            {currentIndex + 1 >= questions.length ? 'Voir les résultats' : 'Suivante'}
+            {currentIndex + 1 >= questions.length ? t('view_results') : t('next')}
           </button>
         )}
       </div>
@@ -201,7 +203,7 @@ export function ActionQuiz({ questionnaire, onFinish }: ActionQuizProps) {
       {history.length > 0 && (
         <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-2">
           <div className="flex justify-between text-[10px] text-zinc-500">
-            <span>{correctCount}/{history.length} correct{correctCount > 1 ? 's' : ''}</span>
+            <span>{correctCount}/{history.length} {t('correct')}</span>
             <span className={`font-bold font-mono-poker ${
               correctCount / history.length >= 0.8 ? 'text-emerald-400' :
               correctCount / history.length >= 0.6 ? 'text-amber-400' : 'text-red-400'

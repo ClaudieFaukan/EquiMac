@@ -1,61 +1,69 @@
 # EquiMac
 
-Calculateur d'equity poker pour macOS. Clone open-source d'Equilab, optimise pour Apple Silicon et Intel.
+**[FR]** Calculateur d'equity poker pour macOS. Clone open-source d'Equilab, optimise pour Apple Silicon et Intel.
 
-## Fonctionnalites
+**[EN]** Poker equity calculator for macOS. Open-source Equilab clone, optimized for Apple Silicon and Intel.
 
-### Grille de Ranges 13x13
-- Selection par clic, drag-to-paint, clic droit pour les combos de suits
-- Cmd+clic pour selectionner un groupe (paires+, suited+, offsuit+)
-- Ranges ponderees (poids 0-100% par main)
-- Notation texte bidirectionnelle (ex: `TT+, AQs+, AKo`)
-- Slider double pour Top X%
+---
 
-### Calculateur d'Equity
-- 2 a 6 joueurs simultanement
-- Moteur Monte Carlo optimise (10k a 1M iterations)
-- Calcul en Web Worker (UI non bloquante)
-- Selecteur de board visuel + textuel (Flop / Turn / River)
-- Dead cards
-- Card removal automatique
+## Features / Fonctionnalites
 
-### Analyseur de Scenarios
-- Analyse l'equity pour chaque carte possible au Turn ou River
-- Tableau trie par impact avec code couleur
+### 13x13 Range Grid / Grille de Ranges
+- Click, drag-to-paint, right-click for suit combos / Clic, drag-to-paint, clic droit pour les combos de suits
+- Cmd+click to select a group (pairs+, suited+, offsuit+) / Cmd+clic pour selectionner un groupe
+- Weighted ranges (0-100% per hand) / Ranges ponderees (poids 0-100% par main)
+- Bidirectional text notation (e.g.: `TT+, AQs+, AKo`) / Notation texte bidirectionnelle
+- Double slider for Top X% / Slider double pour Top X%
 
-### Heatmap d'Equity
-- Visualise la force de chaque main du hero contre le range adverse
-- Code couleur : vert (forte) a rouge (faible)
+### Equity Calculator / Calculateur d'Equity
+- 2 to 6 players / 2 a 6 joueurs
+- Optimized Monte Carlo engine (10k to 1M iterations) / Moteur Monte Carlo optimise
+- Web Worker computation (non-blocking UI) / Calcul en Web Worker (UI non bloquante)
+- Visual + text board selector (Flop / Turn / River) / Selecteur de board visuel + textuel
+- Dead cards + automatic card removal / Dead cards + card removal automatique
 
-### Filtre d'Equity
-- Trouve toutes les mains avec au moins (ou au plus) X% d'equity contre un range donne
-- Grille de resultat + notation copiable
+### Scenario Analyzer / Analyseur de Scenarios
+- Analyzes equity for each possible Turn or River card / Analyse l'equity pour chaque carte possible au Turn ou River
+- Color-coded sorted table / Tableau trie par impact avec code couleur
+
+### Equity Heatmap / Heatmap d'Equity
+- Visualizes each hero hand's strength against the opponent's range / Visualise la force de chaque main du hero contre le range adverse
+- Color code: green (strong) to red (weak) / Code couleur : vert (forte) a rouge (faible)
+
+### Equity Filter / Filtre d'Equity
+- Finds all hands with at least (or at most) X% equity against a given range / Trouve toutes les mains avec au moins (ou au plus) X% d'equity contre un range donne
+- Result grid + copyable notation / Grille de resultat + notation copiable
 
 ### Quiz
-- **Quiz d'equity** : estimez le % d'equity de votre main vs un range (preflop / postflop)
-- **Quiz d'actions** : call / fold / raise / 3-bet sur des scenarios concrets
-- Questionnaires integres (RFI 6-max, 3-bet defense, push/fold tournoi)
-- Creation, import et export de questionnaires personnalises
+- **Equity Quiz** : estimate hand equity vs a range (preflop / postflop) / Estimez l'equity de votre main vs un range
+- **Action Quiz** : call / fold / raise / 3-bet on real scenarios / call / fold / raise / 3-bet sur des scenarios concrets
+- Built-in questionnaires (RFI 6-max, 3-bet defense, push/fold) / Questionnaires integres
+- Create, import and export custom quizzes / Creation, import et export de questionnaires personnalises
 
-### Bibliotheque de Ranges
-- Presets integres : 6-max cash, full ring, tournoi (push/fold, stacks moyens)
-- Ranges personnalisees avec categories
-- Import / Export entre utilisateurs (JSON)
-- Activation / desactivation de categories
+### Range Library / Bibliotheque de Ranges
+- Built-in presets: 6-max cash, full ring, tournament / Presets integres
+- Custom ranges with categories / Ranges personnalisees avec categories
+- Import / Export between users (JSON) / Import / Export entre utilisateurs
+- Enable / disable categories / Activation / desactivation de categories
 
-### Divers
-- Theme sombre et clair
-- Raccourcis clavier complets
-- Persistance (localStorage)
-- Mises a jour automatiques via GitHub Releases
+### Misc / Divers
+- Dark and light theme / Theme sombre et clair
+- FR/EN language toggle / Bascule FR/EN
+- Full keyboard shortcuts / Raccourcis clavier complets
+- Persistence (localStorage)
+- Auto-updates via GitHub Releases / Mises a jour automatiques
+
+---
 
 ## Installation
 
-### Depuis le .dmg
+### From .dmg / Depuis le .dmg
+
+Download the latest version from the [Releases page](https://github.com/ClaudieFaukan/EquiMac/releases).
 
 Telecharger la derniere version sur la [page Releases](https://github.com/ClaudieFaukan/EquiMac/releases).
 
-### Depuis les sources
+### From source / Depuis les sources
 
 ```bash
 git clone https://github.com/ClaudieFaukan/EquiMac.git
@@ -67,14 +75,14 @@ npm run dev
 ## Build
 
 ```bash
-# Build de production
+# Production build
 npm run build
 
-# Generer le .dmg macOS
+# Generate macOS .dmg
 npm run build:mac
 ```
 
-Le `.dmg` est genere dans le dossier `release/`.
+The `.dmg` is generated in the `release/` folder. / Le `.dmg` est genere dans le dossier `release/`.
 
 ## Tests
 
@@ -82,38 +90,38 @@ Le `.dmg` est genere dans le dossier `release/`.
 npm test
 ```
 
-65 tests couvrent le moteur de calcul :
-- Evaluateur de mains (5 et 7 cartes, toutes categories)
-- Calcul d'equity Monte Carlo (AA vs KK, AKs vs QQ, etc.)
-- Parsing et serialisation de notation
-- Generation de combos et card removal
+65 tests cover the calculation engine / 65 tests couvrent le moteur de calcul :
+- Hand evaluator (5 and 7 cards, all categories) / Evaluateur de mains
+- Monte Carlo equity (AA vs KK, AKs vs QQ, etc.)
+- Notation parsing and serialization / Parsing et serialisation de notation
+- Combo generation and card removal / Generation de combos et card removal
 
-## Raccourcis clavier
+## Keyboard Shortcuts / Raccourcis clavier
 
-| Raccourci | Action |
-|-----------|--------|
-| `Cmd+Z` | Annuler |
-| `Cmd+Shift+Z` | Retablir |
-| `Cmd+C` | Copier le range en notation |
-| `Cmd+V` | Coller un range |
-| `Cmd+N` | Vider la grille |
-| `Cmd+Clic` | Selectionner un groupe de mains |
-| `1` - `9` | Selectionner le joueur |
-| `Echap` | Fermer la heatmap |
+| Shortcut / Raccourci | EN | FR |
+|---|---|---|
+| `Cmd+Z` | Undo | Annuler |
+| `Cmd+Shift+Z` | Redo | Retablir |
+| `Cmd+C` | Copy range notation | Copier le range |
+| `Cmd+V` | Paste range | Coller un range |
+| `Cmd+N` | Clear grid | Vider la grille |
+| `Cmd+Click` | Select hand group | Selectionner un groupe |
+| `1` - `9` | Select player | Selectionner le joueur |
+| `Esc` | Close heatmap | Fermer la heatmap |
 
 ## Documentation
 
-La documentation complete est disponible sur le [Wiki GitHub](https://github.com/ClaudieFaukan/EquiMac/wiki).
+- [User Guide / Guide utilisateur](https://github.com/ClaudieFaukan/EquiMac/blob/main/docs/guide-utilisateur.md)
 
-## Stack technique
+## Tech Stack
 
 - **Electron** + **React** + **TypeScript**
-- **Tailwind CSS v4** pour le styling
-- **Zustand** pour le state management
-- **Vitest** pour les tests
-- **Web Workers** pour les calculs Monte Carlo
-- **electron-builder** pour le packaging macOS
+- **Tailwind CSS v4**
+- **Zustand** (state management)
+- **Vitest** (testing)
+- **Web Workers** (Monte Carlo)
+- **electron-builder** (macOS packaging)
 
-## Licence
+## License / Licence
 
 MIT

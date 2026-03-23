@@ -4,7 +4,7 @@ import path from 'path';
 const DEV_URL = 'http://localhost:5173';
 const GITHUB_REPO = 'https://github.com/ClaudieFaukan/EquiMac';
 const GITHUB_RELEASES = `${GITHUB_REPO}/releases`;
-const GITHUB_DOCS = `${GITHUB_REPO}/wiki`;
+const GITHUB_DOCS = `${GITHUB_REPO}/blob/main/docs/guide-utilisateur.md`;
 const GITHUB_ISSUES = `${GITHUB_REPO}/issues`;
 const GITHUB_DISCUSSIONS = `${GITHUB_REPO}/discussions`;
 
@@ -45,7 +45,6 @@ function checkForUpdates() {
       const { autoUpdater } = require('electron-updater');
       autoUpdater.checkForUpdatesAndNotify();
     } catch {
-      // Fallback: open releases page
       shell.openExternal(GITHUB_RELEASES);
     }
   } else {
@@ -53,91 +52,80 @@ function checkForUpdates() {
   }
 }
 
-// Menu bar
 const template: Electron.MenuItemConstructorOptions[] = [
   {
     label: app.name,
     submenu: [
-      { role: 'about', label: 'A propos d\'EquiMac' },
+      { role: 'about', label: 'About EquiMac' },
+      { label: 'Check for Updates...', click: () => checkForUpdates() },
+      { type: 'separator' },
       {
-        label: 'Rechercher des mises a jour...',
-        click: () => checkForUpdates(),
+        label: 'Language / Langue',
+        submenu: [
+          { label: 'English', click: () => mainWindow?.webContents.executeJavaScript('localStorage.setItem("equimac-lang","en"); location.reload()') },
+          { label: 'Francais', click: () => mainWindow?.webContents.executeJavaScript('localStorage.setItem("equimac-lang","fr"); location.reload()') },
+        ],
       },
       { type: 'separator' },
-      { role: 'hide', label: 'Masquer EquiMac' },
-      { role: 'hideOthers', label: 'Masquer les autres' },
-      { role: 'unhide', label: 'Tout afficher' },
+      { role: 'hide', label: 'Hide EquiMac' },
+      { role: 'hideOthers', label: 'Hide Others' },
+      { role: 'unhide', label: 'Show All' },
       { type: 'separator' },
-      { role: 'quit', label: 'Quitter EquiMac' },
+      { role: 'quit', label: 'Quit EquiMac' },
     ],
   },
   {
-    label: 'Edition',
+    label: 'Edit',
     submenu: [
-      { role: 'undo', label: 'Annuler' },
-      { role: 'redo', label: 'Retablir' },
+      { role: 'undo', label: 'Undo' },
+      { role: 'redo', label: 'Redo' },
       { type: 'separator' },
-      { role: 'cut', label: 'Couper' },
-      { role: 'copy', label: 'Copier' },
-      { role: 'paste', label: 'Coller' },
-      { role: 'selectAll', label: 'Tout selectionner' },
+      { role: 'cut', label: 'Cut' },
+      { role: 'copy', label: 'Copy' },
+      { role: 'paste', label: 'Paste' },
+      { role: 'selectAll', label: 'Select All' },
     ],
   },
   {
-    label: 'Fenetre',
+    label: 'Window',
     submenu: [
-      { role: 'minimize', label: 'Reduire' },
+      { role: 'minimize', label: 'Minimize' },
       { role: 'zoom', label: 'Zoom' },
-      { role: 'togglefullscreen', label: 'Plein ecran' },
+      { role: 'togglefullscreen', label: 'Full Screen' },
       { type: 'separator' },
-      { role: 'close', label: 'Fermer' },
+      { role: 'close', label: 'Close' },
     ],
   },
   {
-    label: 'Aide',
+    label: 'Help',
     submenu: [
+      { label: 'Documentation', click: () => shell.openExternal(GITHUB_DOCS) },
       {
-        label: 'Documentation',
-        click: () => shell.openExternal(GITHUB_DOCS),
-      },
-      {
-        label: 'Raccourcis clavier',
+        label: 'Keyboard Shortcuts',
         click: () => {
           dialog.showMessageBox({
             type: 'info',
-            title: 'Raccourcis clavier',
-            message: 'Raccourcis clavier EquiMac',
+            title: 'Keyboard Shortcuts',
+            message: 'EquiMac Keyboard Shortcuts',
             detail: [
-              'Cmd+Z          Annuler',
-              'Cmd+Shift+Z    Retablir',
-              'Cmd+C          Copier le range',
-              'Cmd+V          Coller un range',
-              'Cmd+N          Vider la grille',
-              'Cmd+Clic       Selectionner un groupe',
-              '1-9            Changer de joueur',
-              'Echap          Fermer la heatmap',
+              'Cmd+Z          Undo',
+              'Cmd+Shift+Z    Redo',
+              'Cmd+C          Copy range',
+              'Cmd+V          Paste range',
+              'Cmd+N          Clear grid',
+              'Cmd+Click      Select group',
+              '1-9            Switch player',
+              'Esc            Close heatmap',
             ].join('\n'),
           });
         },
       },
       { type: 'separator' },
-      {
-        label: 'Signaler un bug...',
-        click: () => shell.openExternal(GITHUB_ISSUES),
-      },
-      {
-        label: 'Contacter / Discussions...',
-        click: () => shell.openExternal(GITHUB_DISCUSSIONS),
-      },
-      {
-        label: 'Nouveautes (Changelog)',
-        click: () => shell.openExternal(GITHUB_RELEASES),
-      },
+      { label: 'Report a Bug...', click: () => shell.openExternal(GITHUB_ISSUES) },
+      { label: 'Contact / Discussions...', click: () => shell.openExternal(GITHUB_DISCUSSIONS) },
+      { label: 'What\'s New (Changelog)', click: () => shell.openExternal(GITHUB_RELEASES) },
       { type: 'separator' },
-      {
-        label: 'Page GitHub',
-        click: () => shell.openExternal(GITHUB_REPO),
-      },
+      { label: 'GitHub Page', click: () => shell.openExternal(GITHUB_REPO) },
     ],
   },
 ];
@@ -156,8 +144,6 @@ if (!app.isPackaged) {
 app.whenReady().then(() => {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
   createWindow();
-
-  // Auto-check for updates on launch (packaged only)
   if (app.isPackaged) {
     setTimeout(() => checkForUpdates(), 5000);
   }

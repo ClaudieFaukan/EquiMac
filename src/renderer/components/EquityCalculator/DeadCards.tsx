@@ -3,6 +3,7 @@ import { type Card, cardSuit } from '../../engine/evaluator';
 import { SUIT_SYMBOLS, type Suit } from '../../engine/constants';
 import { useSuitColors } from '../../hooks/useSuitColors';
 import { CardPicker } from '../BoardSelector/CardPicker';
+import { useT } from '../../hooks/useT';
 
 interface DeadCardsProps {
   deadCards: Card[];
@@ -13,6 +14,7 @@ interface DeadCardsProps {
 const SUITS_MAP: Suit[] = ['s', 'h', 'd', 'c'];
 
 export function DeadCards({ deadCards, onDeadCardsChange, usedCards }: DeadCardsProps) {
+  const t = useT();
   const suitColors = useSuitColors();
   const [showPicker, setShowPicker] = useState(false);
   const [pickerPos, setPickerPos] = useState<{ x: number; y: number } | undefined>();
@@ -35,12 +37,12 @@ export function DeadCards({ deadCards, onDeadCardsChange, usedCards }: DeadCards
   return (
     <div>
       <div className="flex items-center gap-2 mb-1">
-        <span className="text-[10px] text-zinc-500 uppercase tracking-wider">Dead Cards</span>
+        <span className="text-[10px] text-zinc-500 uppercase tracking-wider">{t('dead_cards')}</span>
         {deadCards.length > 0 && (
           <button
             onClick={() => onDeadCardsChange([])}
             className="text-[10px] text-zinc-600 hover:text-zinc-300 transition-colors"
-            title="Vider les dead cards"
+            title={t('clear_dead_cards')}
           >
             ✕ clear
           </button>
@@ -57,7 +59,7 @@ export function DeadCards({ deadCards, onDeadCardsChange, usedCards }: DeadCards
               onClick={() => handleRemove(i)}
               className="w-7 h-8 rounded bg-zinc-700 border border-zinc-600 text-[11px] font-mono-poker font-bold flex items-center justify-center hover:bg-red-900/50 transition-colors"
               style={{ color: suitColors[suit] }}
-              title="Cliquer pour retirer"
+              title={t('click_to_remove')}
             >
               {rankChar}{SUIT_SYMBOLS[suit]}
             </button>

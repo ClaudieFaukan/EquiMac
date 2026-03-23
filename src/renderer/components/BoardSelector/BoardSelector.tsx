@@ -3,6 +3,7 @@ import { type Card, cardToString, parseCard } from '../../engine/evaluator';
 import { SUIT_SYMBOLS, type Suit } from '../../engine/constants';
 import { useSuitColors } from '../../hooks/useSuitColors';
 import { CardPicker } from './CardPicker';
+import { useT } from '../../hooks/useT';
 
 interface BoardSelectorProps {
   board: Card[];
@@ -58,6 +59,7 @@ function textToBoard(text: string): Card[] | null {
 }
 
 export function BoardSelector({ board, onBoardChange, usedCards }: BoardSelectorProps) {
+  const t = useT();
   const suitColors = useSuitColors();
   const [pickerSlot, setPickerSlot] = useState<number | null>(null);
   const [pickerPos, setPickerPos] = useState<{ x: number; y: number } | undefined>();
@@ -127,7 +129,7 @@ export function BoardSelector({ board, onBoardChange, usedCards }: BoardSelector
           <button
             onClick={() => onBoardChange([])}
             className="text-[10px] text-zinc-600 hover:text-zinc-300 transition-colors"
-            title="Vider le board"
+            title={t('clear_board')}
           >
             ✕ clear
           </button>

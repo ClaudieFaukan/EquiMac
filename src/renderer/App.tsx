@@ -11,12 +11,15 @@ import { RangeManager } from './components/RangeManager/RangeManager';
 import { EquityFilter } from './components/EquityFilter/EquityFilter';
 import { useRangeStore } from './store/rangeStore';
 import { useThemeStore } from './store/themeStore';
+import { useT } from './hooks/useT';
+import { useLangStore } from './store/langStore';
 import { rangeToNotation, type RangeMatrix } from './engine/ranges';
 import type { HeatmapResult } from './engine/heatmap';
 
 type RightTab = 'calculator' | 'trainer' | 'ranges' | 'filter';
 
 export default function App() {
+  const t = useT();
   const [activePlayer, setActivePlayer] = useState<number>(0);
   const [externalRange, setExternalRange] = useState<{ playerIndex: number; range: RangeMatrix } | null>(null);
   const [heatmap, setHeatmap] = useState<HeatmapResult | null>(null);
@@ -24,6 +27,8 @@ export default function App() {
 
   const theme = useThemeStore((s) => s.theme);
   const toggleTheme = useThemeStore((s) => s.toggleTheme);
+  const lang = useLangStore((s) => s.lang);
+  const toggleLang = useLangStore((s) => s.toggleLang);
 
   // Apply theme to document
   useEffect(() => {
@@ -118,11 +123,19 @@ export default function App() {
         style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
       >
         EquiMac
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+          <button
+            onClick={toggleLang}
+            className="w-7 h-6 rounded flex items-center justify-center text-[10px] font-bold text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700 transition-colors"
+            title={lang === 'en' ? 'Passer en français' : 'Switch to English'}
+          >
+            {lang === 'en' ? 'FR' : 'EN'}
+          </button>
         <button
           onClick={toggleTheme}
-          className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded flex items-center justify-center text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700 transition-colors"
+          className="w-6 h-6 rounded flex items-center justify-center text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700 transition-colors"
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-          title={theme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
+          title={theme === 'dark' ? t('switch_light') : t('switch_dark')}
         >
           {theme === 'dark' ? (
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -134,6 +147,7 @@ export default function App() {
             </svg>
           )}
         </button>
+        </div>
       </div>
 
       {/* Main content */}
@@ -144,25 +158,25 @@ export default function App() {
             <>
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-zinc-500 uppercase tracking-wider">
-                  Heatmap — J1 vs J2
+                  {t('heatmap_title')}
                 </span>
                 <button
                   onClick={() => setHeatmap(null)}
                   className="text-[10px] text-zinc-500 hover:text-zinc-300 underline"
                 >
-                  Retour grille
+                  {t('back_to_grid')}
                 </button>
               </div>
               <HeatmapOverlay equities={heatmap.equities} />
               <div className="text-[10px] text-zinc-600 text-center">
-                Calculé en {(heatmap.timeMs / 1000).toFixed(1)}s
+                {t('computed_in')} {(heatmap.timeMs / 1000).toFixed(1)}s
               </div>
             </>
           ) : (
             <>
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-zinc-500 uppercase tracking-wider">
-                  Range — Joueur {activePlayer + 1}
+                  {t('range_player')} {activePlayer + 1}
                 </span>
                 <PresetSelector />
               </div>
@@ -179,10 +193,10 @@ export default function App() {
           {/* Tab bar */}
           <div className="flex gap-1 mb-3 shrink-0">
             {([
-              { id: 'calculator' as const, label: 'Calculateur' },
-              { id: 'trainer' as const, label: 'Quiz' },
-              { id: 'filter' as const, label: 'Filtre' },
-              { id: 'ranges' as const, label: 'Ranges' },
+              { id: 'calculator' as const, label: t('tab_calculator') },
+              { id: 'trainer' as const, label: t('tab_quiz') },
+              { id: 'filter' as const, label: t('tab_filter') },
+              { id: 'ranges' as const, label: t('tab_ranges') },
             ]).map(tab => (
               <button
                 key={tab.id}

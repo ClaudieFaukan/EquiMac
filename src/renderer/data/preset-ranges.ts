@@ -61,7 +61,7 @@ export const PRESET_RANGES: PresetCategory[] = [
     ],
   },
   {
-    name: 'Tournament — Stacks moyens',
+    name: 'Tournament — Medium stacks',
     presets: [
       { name: 'CO Open 30bb', notation: '55+, A7s+, K9s+, Q9s+, J9s+, T9s, 98s, 87s, A9o+, KTo+, QJo' },
       { name: 'BTN Open 30bb', notation: '33+, A2s+, K6s+, Q8s+, J8s+, T8s+, 97s+, 86s+, 76s, 65s, 54s, A7o+, K9o+, Q9o+, J9o+, T9o' },

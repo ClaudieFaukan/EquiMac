@@ -4,6 +4,7 @@ import { SUIT_SYMBOLS, type Suit } from '../../engine/constants';
 import { useSuitColors } from '../../hooks/useSuitColors';
 import type { RangeMatrix } from '../../engine/ranges';
 import type { ScenarioResult, CardEquity } from '../../engine/scenario';
+import { useT } from '../../hooks/useT';
 
 interface ScenarioAnalyzerProps {
   ranges: RangeMatrix[];
@@ -34,6 +35,7 @@ function CardLabel({ card, suitColors }: { card: Card; suitColors: Record<Suit, 
 }
 
 export function ScenarioAnalyzer({ ranges, board, deadCards }: ScenarioAnalyzerProps) {
+  const t = useT();
   const suitColors = useSuitColors();
   const [result, setResult] = useState<ScenarioResult | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
@@ -84,14 +86,14 @@ export function ScenarioAnalyzer({ ranges, board, deadCards }: ScenarioAnalyzerP
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-          Analyseur — Cartes du {boardLabel}
+          {t('analyzer')} — {boardLabel}
         </span>
         <div className="flex gap-2">
           {result && (
             <button
               onClick={() => setResult(null)}
               className="px-2 py-1 rounded text-xs text-zinc-500 hover:text-zinc-200 hover:bg-zinc-700 transition-colors"
-              title="Fermer les résultats"
+              title={t('close_results')}
             >
               ✕
             </button>
@@ -101,29 +103,29 @@ export function ScenarioAnalyzer({ ranges, board, deadCards }: ScenarioAnalyzerP
             disabled={!canAnalyze || isCalculating}
             className="px-3 py-1 rounded text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            {isCalculating ? 'Analyse...' : 'Analyser'}
+            {isCalculating ? t('analyzing') : t('analyze')}
           </button>
         </div>
       </div>
 
       {!canAnalyze && (
         <p className="text-[10px] text-zinc-600">
-          Entrez 2 ranges et un flop (ou flop+turn) pour analyser les cartes suivantes.
+          {t('analyzer_hint')}
         </p>
       )}
 
       {result && (
         <>
           <div className="flex gap-2 text-[10px] text-zinc-500">
-            <span>Base: J1 {(result.baseEquities[0] * 100).toFixed(1)}%</span>
+            <span>Base: P1 {(result.baseEquities[0] * 100).toFixed(1)}%</span>
             <span className="text-zinc-700">|</span>
-            <span>{result.cards.length} cartes analysées en {(result.timeMs / 1000).toFixed(1)}s</span>
+            <span>{result.cards.length} {t('cards_analyzed_in')} {(result.timeMs / 1000).toFixed(1)}s</span>
             <span className="text-zinc-700">|</span>
             <button
               onClick={() => setSortBy(sortBy === 'equity' ? 'card' : 'equity')}
               className="text-zinc-400 hover:text-zinc-200 underline"
             >
-              Trier par {sortBy === 'equity' ? 'carte' : 'equity'}
+              {sortBy === 'equity' ? t('sort_by_card') : t('sort_by_equity')}
             </button>
           </div>
 
@@ -131,9 +133,9 @@ export function ScenarioAnalyzer({ ranges, board, deadCards }: ScenarioAnalyzerP
             <table className="w-full text-[11px]">
               <thead className="bg-zinc-800 sticky top-0">
                 <tr>
-                  <th className="text-left px-2 py-1 text-zinc-500 font-normal">Carte</th>
-                  <th className="text-right px-2 py-1 text-zinc-500 font-normal">J1</th>
-                  <th className="text-right px-2 py-1 text-zinc-500 font-normal">J2</th>
+                  <th className="text-left px-2 py-1 text-zinc-500 font-normal">{t('card')}</th>
+                  <th className="text-right px-2 py-1 text-zinc-500 font-normal">P1</th>
+                  <th className="text-right px-2 py-1 text-zinc-500 font-normal">P2</th>
                   <th className="text-right px-2 py-1 text-zinc-500 font-normal">Diff</th>
                 </tr>
               </thead>

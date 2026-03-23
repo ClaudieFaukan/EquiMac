@@ -8,6 +8,7 @@ import { ResultsBar } from './ResultsBar';
 import { BoardSelector } from '../BoardSelector/BoardSelector';
 import { DeadCards } from './DeadCards';
 import { ScenarioAnalyzer } from '../ScenarioAnalyzer/ScenarioAnalyzer';
+import { useT } from '../../hooks/useT';
 
 interface PlayerState {
   notation: string;
@@ -21,6 +22,7 @@ interface EquityCalculatorProps {
 }
 
 export function EquityCalculator({ onOpenGrid, externalRange, onHeatmapResult }: EquityCalculatorProps) {
+  const t = useT();
   const [players, setPlayers] = useState<PlayerState[]>([
     { notation: '', range: parseRangeNotation('') },
     { notation: '', range: parseRangeNotation('') },
@@ -159,7 +161,7 @@ export function EquityCalculator({ onOpenGrid, externalRange, onHeatmapResult }:
     });
   }, [players, board, deadCards, canCalculate, onHeatmapResult]);
 
-  const playerLabels = players.map((_, i) => `Joueur ${i + 1}`);
+  const playerLabels = players.map((_, i) => `${t('player')} ${i + 1}`);
 
   return (
     <div className="flex flex-col gap-3 h-full">
@@ -169,7 +171,7 @@ export function EquityCalculator({ onOpenGrid, externalRange, onHeatmapResult }:
           <PlayerPanel
             key={i}
             index={i}
-            label={`Joueur ${i + 1}`}
+            label={`${t('player')} ${i + 1}`}
             notation={player.notation}
             onNotationChange={(n) => updatePlayerNotation(i, n)}
             onOpenGrid={() => handleOpenGrid(i)}
@@ -188,14 +190,14 @@ export function EquityCalculator({ onOpenGrid, externalRange, onHeatmapResult }:
           disabled={players.length >= 6}
           className="flex-1 py-1 rounded text-xs font-semibold bg-zinc-700 text-zinc-300 hover:bg-zinc-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
-          + Joueur
+          {t('add_player')}
         </button>
         <button
           onClick={removePlayer}
           disabled={players.length <= 2}
           className="flex-1 py-1 rounded text-xs font-semibold bg-zinc-700 text-zinc-300 hover:bg-zinc-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
-          − Joueur
+          {t('remove_player')}
         </button>
       </div>
 
@@ -215,7 +217,7 @@ export function EquityCalculator({ onOpenGrid, externalRange, onHeatmapResult }:
 
       {/* Iterations selector */}
       <div className="flex items-center gap-2">
-        <span className="text-[10px] text-zinc-500 uppercase tracking-wider">Itérations</span>
+        <span className="text-[10px] text-zinc-500 uppercase tracking-wider">{t('iterations')}</span>
         <select
           value={iterations}
           onChange={(e) => setIterations(Number(e.target.value))}
@@ -236,7 +238,7 @@ export function EquityCalculator({ onOpenGrid, externalRange, onHeatmapResult }:
           disabled={!canCalculate || isCalculating}
           className="flex-1 py-2.5 rounded-lg font-bold text-sm transition-colors bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          {isCalculating ? 'Calcul...' : 'Calculer'}
+          {isCalculating ? t('computing') : t('calculate')}
         </button>
         <div className="relative group">
           <button
@@ -247,7 +249,7 @@ export function EquityCalculator({ onOpenGrid, externalRange, onHeatmapResult }:
             {isHeatmapping ? '...' : 'Heatmap'}
           </button>
           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 bg-zinc-700 border border-zinc-600 rounded-lg p-2.5 shadow-xl text-[11px] text-zinc-300 leading-relaxed opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50">
-            Affiche la force de chaque main du J1 contre le range du J2 par un code couleur sur la grille (vert = forte, rouge = faible).
+            {t('heatmap_tooltip')}
           </div>
         </div>
       </div>
@@ -257,7 +259,7 @@ export function EquityCalculator({ onOpenGrid, externalRange, onHeatmapResult }:
         <div className="space-y-2">
           <ResultsBar equities={result.equity} labels={playerLabels} />
           <div className="text-[10px] text-zinc-600 text-center">
-            {result.iterations.toLocaleString()} simulations en {result.timeMs.toFixed(0)}ms
+            {result.iterations.toLocaleString()} {t('simulations_in')} {result.timeMs.toFixed(0)}ms
           </div>
         </div>
       )}

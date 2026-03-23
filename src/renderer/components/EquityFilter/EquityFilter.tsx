@@ -4,12 +4,14 @@ import { MiniPresetSelector } from '../EquityCalculator/MiniPresetSelector';
 import { ReadOnlyGrid } from '../RangeGrid/ReadOnlyGrid';
 import type { HeatmapResult } from '../../engine/heatmap';
 import { useRangeStore } from '../../store/rangeStore';
+import { useT } from '../../hooks/useT';
 
 interface EquityFilterProps {
   onApplyResult: (range: RangeMatrix) => void;
 }
 
 export function EquityFilter({ onApplyResult }: EquityFilterProps) {
+  const t = useT();
   const gridRange = useRangeStore(s => s.range);
   const gridNotation = useRangeStore(s => s.getNotation);
   const importNotation = useRangeStore(s => s.importNotation);
@@ -139,16 +141,16 @@ export function EquityFilter({ onApplyResult }: EquityFilterProps) {
   return (
     <div className="flex flex-col gap-3">
       <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-        Filtre d'equity
+        {t('equity_filter')}
       </span>
       <p className="text-[10px] text-zinc-600 leading-relaxed">
-        Définissez le range adverse (synchro avec la grille), puis trouvez toutes les mains avec une equity cible contre ce range.
+        {t('filter_desc')}
       </p>
 
       {/* Villain range input */}
       <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-3 space-y-2">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] text-zinc-500 uppercase tracking-wider">Range adverse</span>
+          <span className="text-[10px] text-zinc-500 uppercase tracking-wider">{t('opponent_range')}</span>
           <span className="text-[10px] text-zinc-600">{villainCombos} combos · {villainPct.toFixed(1)}%</span>
         </div>
         <div className="flex gap-2">
@@ -165,7 +167,7 @@ export function EquityFilter({ onApplyResult }: EquityFilterProps) {
           )}
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-zinc-500">ou Top</span>
+          <span className="text-[10px] text-zinc-500">{t('or_top')}</span>
           <input
             type="text"
             value={villainTopPct}
@@ -186,15 +188,15 @@ export function EquityFilter({ onApplyResult }: EquityFilterProps) {
 
       {/* Target equity */}
       <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-3 space-y-2">
-        <span className="text-[10px] text-zinc-500 uppercase tracking-wider">Equity cible</span>
+        <span className="text-[10px] text-zinc-500 uppercase tracking-wider">{t('target_equity')}</span>
         <div className="flex items-center gap-2">
           <select
             value={mode}
             onChange={(e) => setMode(e.target.value as 'gte' | 'lte')}
             className="bg-zinc-900 border border-zinc-600 rounded px-2 py-1.5 text-xs text-zinc-300 focus:outline-none"
           >
-            <option value="gte">Au moins (≥)</option>
-            <option value="lte">Au plus (≤)</option>
+            <option value="gte">{t('at_least')}</option>
+            <option value="lte">{t('at_most')}</option>
           </select>
           <input
             type="number"
@@ -222,7 +224,7 @@ export function EquityFilter({ onApplyResult }: EquityFilterProps) {
         disabled={!villainNotation.trim() || isCalculating}
         className="w-full py-2.5 rounded-lg font-bold text-sm transition-colors bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-40 disabled:cursor-not-allowed"
       >
-        {isCalculating ? 'Calcul en cours...' : 'Trouver les mains'}
+        {isCalculating ? t('computing') : t('find_hands')}
       </button>
 
       {/* Results */}
@@ -230,7 +232,7 @@ export function EquityFilter({ onApplyResult }: EquityFilterProps) {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-zinc-400">
-              {resultStats.matchCount} mains · {resultCombos} combos · {resultPct.toFixed(1)}%
+              {resultStats.matchCount} {t('hands')} · {resultCombos} combos · {resultPct.toFixed(1)}%
             </span>
             <span className="text-[10px] text-zinc-600">
               {(resultStats.timeMs / 1000).toFixed(1)}s
@@ -240,16 +242,16 @@ export function EquityFilter({ onApplyResult }: EquityFilterProps) {
           {/* Result grid */}
           <div>
             <div className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">
-              Mains avec {mode === 'gte' ? '≥' : '≤'}{targetEquity}% equity
+              {t('hands_with')} {mode === 'gte' ? '≥' : '≤'}{targetEquity}% equity
             </div>
             <ReadOnlyGrid range={resultRange} equities={heatmapData ?? undefined} />
           </div>
 
           {/* Notation */}
           <div className="bg-zinc-900 rounded p-2">
-            <div className="text-[10px] text-zinc-500 mb-1">Notation :</div>
+            <div className="text-[10px] text-zinc-500 mb-1">{t('notation')}</div>
             <div className="text-xs font-mono-poker text-zinc-200 break-all leading-relaxed max-h-16 overflow-y-auto">
-              {resultNotation || '(aucune main)'}
+              {resultNotation || t('no_hands')}
             </div>
           </div>
 
@@ -260,14 +262,14 @@ export function EquityFilter({ onApplyResult }: EquityFilterProps) {
               disabled={!resultNotation}
               className="flex-1 py-2 rounded-lg font-bold text-sm bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-40 transition-colors"
             >
-              Charger dans la grille
+              {t('load_to_grid')}
             </button>
             <button
               onClick={() => { if (resultNotation) navigator.clipboard.writeText(resultNotation); }}
               disabled={!resultNotation}
               className="px-4 py-2 rounded-lg text-sm font-semibold bg-zinc-700 text-zinc-300 hover:bg-zinc-600 disabled:opacity-40 transition-colors"
             >
-              Copier
+              {t('copy')}
             </button>
           </div>
         </div>

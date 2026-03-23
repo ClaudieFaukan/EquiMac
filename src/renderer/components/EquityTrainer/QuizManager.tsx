@@ -5,6 +5,7 @@ import {
   type Questionnaire, type QuestionnaireExport,
   type ActionQuestion, type PokerAction, type Position,
 } from '../../data/quiz-types';
+import { useT } from '../../hooks/useT';
 
 interface QuizManagerProps {
   onBack: () => void;
@@ -14,6 +15,7 @@ const POSITIONS: Position[] = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
 const ACTIONS: PokerAction[] = ['fold', 'call', 'raise', '3bet', '4bet', 'allin'];
 
 export function QuizManager({ onBack }: QuizManagerProps) {
+  const t = useT();
   const {
     customQuestionnaires, disabledIds,
     addQuestionnaire, deleteQuestionnaire, toggleQuestionnaire,
@@ -109,8 +111,8 @@ export function QuizManager({ onBack }: QuizManagerProps) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Gérer les questionnaires</span>
-        <button onClick={onBack} className="text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors">Retour</button>
+        <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">{t('manage_quizzes')}</span>
+        <button onClick={onBack} className="text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors">{t('back')}</button>
       </div>
 
       {/* Actions */}
@@ -119,20 +121,20 @@ export function QuizManager({ onBack }: QuizManagerProps) {
           onClick={() => setShowCreate(true)}
           className="px-3 py-1.5 rounded text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white transition-colors"
         >
-          + Créer
+          {t('create_btn')}
         </button>
         <button
           onClick={handleExport}
           disabled={customQuestionnaires.length === 0}
           className="px-3 py-1.5 rounded text-xs font-semibold bg-zinc-700 text-zinc-300 hover:bg-zinc-600 disabled:opacity-30 transition-colors"
         >
-          Exporter
+          {t('export')}
         </button>
         <button
           onClick={() => fileInputRef.current?.click()}
           className="px-3 py-1.5 rounded text-xs font-semibold bg-zinc-700 text-zinc-300 hover:bg-zinc-600 transition-colors"
         >
-          Importer
+          {t('import')}
         </button>
         <input ref={fileInputRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
       </div>
@@ -140,22 +142,22 @@ export function QuizManager({ onBack }: QuizManagerProps) {
       {/* Create form */}
       {showCreate && (
         <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-3 space-y-3">
-          <span className="text-[10px] text-zinc-500 uppercase tracking-wider">Nouveau questionnaire</span>
+          <span className="text-[10px] text-zinc-500 uppercase tracking-wider">{t('new_quiz')}</span>
           <input
             type="text" value={newName} onChange={e => setNewName(e.target.value)}
-            placeholder="Nom du questionnaire" autoFocus
+            placeholder={t('quiz_name')} autoFocus
             className="w-full bg-zinc-900 border border-zinc-600 rounded px-2 py-1.5 text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-purple-600"
           />
           <input
             type="text" value={newDesc} onChange={e => setNewDesc(e.target.value)}
-            placeholder="Description (optionnel)"
+            placeholder={t('description_optional')}
             className="w-full bg-zinc-900 border border-zinc-600 rounded px-2 py-1.5 text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none"
           />
 
           {/* Questions list */}
           {questions.length > 0 && (
             <div className="text-[10px] text-zinc-400">
-              {questions.length} question{questions.length > 1 ? 's' : ''} ajoutée{questions.length > 1 ? 's' : ''}
+              {questions.length} question{questions.length > 1 ? 's' : ''} {t('questions_added')}
               <div className="mt-1 space-y-1">
                 {questions.map((q, i) => (
                   <div key={i} className="flex items-center justify-between bg-zinc-900 rounded px-2 py-1">
@@ -169,7 +171,7 @@ export function QuizManager({ onBack }: QuizManagerProps) {
 
           {/* Add question */}
           {!showAddQ ? (
-            <button onClick={() => setShowAddQ(true)} className="text-[10px] text-purple-400 hover:text-purple-300">+ Ajouter une question</button>
+            <button onClick={() => setShowAddQ(true)} className="text-[10px] text-purple-400 hover:text-purple-300">{t('add_question')}</button>
           ) : (
             <div className="bg-zinc-900 rounded p-2 space-y-2">
               <div className="grid grid-cols-2 gap-2">
@@ -179,9 +181,9 @@ export function QuizManager({ onBack }: QuizManagerProps) {
                   className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-[10px] text-zinc-200 focus:outline-none">
                   {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
                 </select>
-                <input type="text" value={qHand} onChange={e => setQHand(e.target.value)} placeholder="Main (ex: AKs)"
+                <input type="text" value={qHand} onChange={e => setQHand(e.target.value)} placeholder={t('hand_placeholder')}
                   className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-[10px] font-mono-poker text-zinc-200 placeholder-zinc-600 focus:outline-none" />
-                <input type="text" value={qVillain} onChange={e => setQVillain(e.target.value)} placeholder="Action vilain"
+                <input type="text" value={qVillain} onChange={e => setQVillain(e.target.value)} placeholder={t('villain_action')}
                   className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-[10px] text-zinc-200 placeholder-zinc-600 focus:outline-none" />
                 <input type="number" value={qStackBB} onChange={e => setQStackBB(e.target.value)} placeholder="Stack (bb)"
                   className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-[10px] text-zinc-200 placeholder-zinc-600 focus:outline-none" />
@@ -202,20 +204,20 @@ export function QuizManager({ onBack }: QuizManagerProps) {
                   >{a}</button>
                 ))}
               </div>
-              <input type="text" value={qExplanation} onChange={e => setQExplanation(e.target.value)} placeholder="Explication (optionnel)"
+              <input type="text" value={qExplanation} onChange={e => setQExplanation(e.target.value)} placeholder={t('explanation_optional')}
                 className="w-full bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-[10px] text-zinc-200 placeholder-zinc-600 focus:outline-none" />
               <div className="flex gap-2">
                 <button onClick={handleAddQuestion} disabled={!qHand.trim() || !qSituation.trim()}
-                  className="px-2 py-1 rounded text-[10px] font-semibold bg-purple-600 text-white disabled:opacity-40">Ajouter</button>
-                <button onClick={() => setShowAddQ(false)} className="px-2 py-1 rounded text-[10px] text-zinc-500">Annuler</button>
+                  className="px-2 py-1 rounded text-[10px] font-semibold bg-purple-600 text-white disabled:opacity-40">{t('add')}</button>
+                <button onClick={() => setShowAddQ(false)} className="px-2 py-1 rounded text-[10px] text-zinc-500">{t('cancel')}</button>
               </div>
             </div>
           )}
 
           <div className="flex gap-2">
             <button onClick={handleCreate} disabled={!newName.trim() || questions.length === 0}
-              className="px-3 py-1.5 rounded text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-40">Créer le questionnaire</button>
-            <button onClick={() => { setShowCreate(false); setQuestions([]); }} className="px-2 py-1.5 rounded text-xs text-zinc-500 hover:text-zinc-300">Annuler</button>
+              className="px-3 py-1.5 rounded text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-40">{t('create_quiz')}</button>
+            <button onClick={() => { setShowCreate(false); setQuestions([]); }} className="px-2 py-1.5 rounded text-xs text-zinc-500 hover:text-zinc-300">{t('cancel')}</button>
           </div>
         </div>
       )}
@@ -249,7 +251,7 @@ export function QuizManager({ onBack }: QuizManagerProps) {
                 )}
               </div>
               {isBuiltIn && (
-                <span className="text-[9px] text-zinc-600 shrink-0">Intégré</span>
+                <span className="text-[9px] text-zinc-600 shrink-0">{t('built_in')}</span>
               )}
               {!isBuiltIn && (
                 <button
