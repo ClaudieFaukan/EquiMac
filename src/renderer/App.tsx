@@ -9,7 +9,7 @@ import { PresetSelector } from './components/RangeGrid/PresetSelector';
 import { HeatmapOverlay } from './components/RangeGrid/HeatmapOverlay';
 import { RangeManager } from './components/RangeManager/RangeManager';
 import { useRangeStore } from './store/rangeStore';
-import { type RangeMatrix } from './engine/ranges';
+import { rangeToNotation, type RangeMatrix } from './engine/ranges';
 import type { HeatmapResult } from './engine/heatmap';
 
 type RightTab = 'calculator' | 'trainer' | 'ranges';
@@ -22,6 +22,11 @@ export default function App() {
 
   const range = useRangeStore((s) => s.range);
   const setRange = useRangeStore((s) => s.setRange);
+  const undo = useRangeStore((s) => s.undo);
+  const redo = useRangeStore((s) => s.redo);
+  const clearRange = useRangeStore((s) => s.clearRange);
+  const getNotation = useRangeStore((s) => s.getNotation);
+  const importNotation = useRangeStore((s) => s.importNotation);
 
   const handleOpenGrid = useCallback((playerIndex: number, playerRange: RangeMatrix) => {
     setActivePlayer(playerIndex);
@@ -36,6 +41,64 @@ export default function App() {
   const handleHeatmapResult = useCallback((result: HeatmapResult | null) => {
     setHeatmap(result);
   }, []);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const meta = e.metaKey || e.ctrlKey;
+      const target = e.target as HTMLElement;
+      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT';
+
+      // Cmd+Z — Undo
+      if (meta && !e.shiftKey && e.key === 'z' && !isInput) {
+        e.preventDefault();
+        undo();
+        return;
+      }
+      // Cmd+Shift+Z — Redo
+      if (meta && e.shiftKey && e.key === 'z' && !isInput) {
+        e.preventDefault();
+        redo();
+        return;
+      }
+      // Cmd+C — Copy range notation (when not in input)
+      if (meta && e.key === 'c' && !isInput) {
+        e.preventDefault();
+        const notation = getNotation();
+        if (notation) navigator.clipboard.writeText(notation);
+        return;
+      }
+      // Cmd+V — Paste range notation (when not in input)
+      if (meta && e.key === 'v' && !isInput) {
+        e.preventDefault();
+        navigator.clipboard.readText().then(text => {
+          if (text.trim()) importNotation(text.trim());
+        });
+        return;
+      }
+      // Cmd+N — Clear range
+      if (meta && e.key === 'n' && !isInput) {
+        e.preventDefault();
+        clearRange();
+        return;
+      }
+      // Escape — Close heatmap
+      if (e.key === 'Escape') {
+        if (heatmap) setHeatmap(null);
+        return;
+      }
+      // 1-9 — Select player panel (when not in input)
+      if (!isInput && e.key >= '1' && e.key <= '9') {
+        const idx = parseInt(e.key) - 1;
+        if (idx >= 0) {
+          setActivePlayer(idx);
+        }
+        return;
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [undo, redo, clearRange, getNotation, importNotation, heatmap]);
 
   return (
     <div className="h-screen flex flex-col bg-zinc-900 text-zinc-100">

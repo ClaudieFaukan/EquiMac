@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { type Card, cardToString, cardRank, cardSuit } from '../../engine/evaluator';
+import { useState, useCallback } from 'react';
+import { type Card, cardToString, parseCard } from '../../engine/evaluator';
 import { SUIT_SYMBOLS, SUIT_COLORS, type Suit } from '../../engine/constants';
 import { CardPicker } from './CardPicker';
 
@@ -38,19 +38,40 @@ function CardDisplay({ card, onClick, placeholder }: { card?: Card; onClick: (e:
   );
 }
 
+/** Convert board cards to text like "Ah,Kd,2s" */
+function boardToText(board: Card[]): string {
+  return board.map(cardToString).join(',');
+}
+
+/** Parse text like "Ah,Kd,2s" to card array. Returns null on invalid input. */
+function textToBoard(text: string): Card[] | null {
+  const trimmed = text.trim();
+  if (!trimmed) return [];
+  const parts = trimmed.split(/[,\s]+/).filter(Boolean);
+  if (parts.length > 5) return null;
+  try {
+    return parts.map(parseCard);
+  } catch {
+    return null;
+  }
+}
+
 export function BoardSelector({ board, onBoardChange, usedCards }: BoardSelectorProps) {
   const [pickerSlot, setPickerSlot] = useState<number | null>(null);
   const [pickerPos, setPickerPos] = useState<{ x: number; y: number } | undefined>();
+  const [textInput, setTextInput] = useState('');
+  const [textFocused, setTextFocused] = useState(false);
+
+  // Text displayed: when not focused, always show the board state
+  const displayText = textFocused ? textInput : boardToText(board);
 
   const handleSlotClick = (index: number, e: React.MouseEvent) => {
-    // If card exists, remove it on click
     if (index < board.length) {
       const newBoard = [...board];
       newBoard.splice(index, 1);
       onBoardChange(newBoard);
       return;
     }
-    // Only allow adding cards in sequence
     if (index > board.length) return;
     const rect = (e.target as HTMLElement).getBoundingClientRect();
     setPickerPos({ x: rect.left, y: rect.bottom + 4 });
@@ -64,6 +85,37 @@ export function BoardSelector({ board, onBoardChange, usedCards }: BoardSelector
     onBoardChange(newBoard);
     setPickerSlot(null);
   };
+
+  const handleTextFocus = () => {
+    setTextFocused(true);
+    setTextInput(boardToText(board));
+  };
+
+  const handleTextBlur = () => {
+    setTextFocused(false);
+    // Apply on blur
+    const parsed = textToBoard(textInput);
+    if (parsed !== null) {
+      onBoardChange(parsed);
+    }
+  };
+
+  const handleTextChange = (value: string) => {
+    setTextInput(value);
+    // Live sync: apply valid input immediately
+    const parsed = textToBoard(value);
+    if (parsed !== null) {
+      onBoardChange(parsed);
+    }
+  };
+
+  const handleTextKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      (e.target as HTMLElement).blur();
+    }
+  };
+
+  const isTextInvalid = textFocused && textInput.trim() !== '' && textToBoard(textInput) === null;
 
   return (
     <div>
@@ -79,8 +131,9 @@ export function BoardSelector({ board, onBoardChange, usedCards }: BoardSelector
           </button>
         )}
       </div>
+
+      {/* Visual cards */}
       <div className="flex gap-1">
-        {/* Flop */}
         <div className="flex gap-0.5">
           {[0, 1, 2].map(i => (
             <CardDisplay
@@ -92,20 +145,32 @@ export function BoardSelector({ board, onBoardChange, usedCards }: BoardSelector
           ))}
         </div>
         <div className="w-px bg-zinc-700 mx-0.5" />
-        {/* Turn */}
         <CardDisplay
           card={board[3]}
           onClick={(e) => handleSlotClick(3, e)}
           placeholder="T"
         />
         <div className="w-px bg-zinc-700 mx-0.5" />
-        {/* River */}
         <CardDisplay
           card={board[4]}
           onClick={(e) => handleSlotClick(4, e)}
           placeholder="R"
         />
       </div>
+
+      {/* Text input */}
+      <input
+        type="text"
+        value={displayText}
+        onChange={(e) => handleTextChange(e.target.value)}
+        onFocus={handleTextFocus}
+        onBlur={handleTextBlur}
+        onKeyDown={handleTextKeyDown}
+        placeholder="Ah,Kd,2s..."
+        className={`mt-1.5 w-full bg-zinc-900 border rounded px-2 py-1 text-xs font-mono-poker text-zinc-200 placeholder-zinc-600 focus:outline-none transition-colors ${
+          isTextInvalid ? 'border-red-600' : 'border-zinc-700 focus:border-zinc-500'
+        }`}
+      />
 
       {pickerSlot !== null && (
         <CardPicker

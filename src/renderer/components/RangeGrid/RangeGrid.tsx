@@ -13,33 +13,66 @@ export function RangeGrid() {
 
   const [isDragging, setIsDragging] = useState(false);
   const paintValueRef = useRef<number>(1);
+  const cmdDragRef = useRef(false);
   const [subGrid, setSubGrid] = useState<{
     row: number;
     col: number;
     position: { x: number; y: number };
   } | null>(null);
 
+  const applyCmdSelect = useCallback(
+    (row: number, col: number, value: number) => {
+      if (row === col) {
+        for (let i = 0; i <= row; i++) {
+          paintCell(i, i, value);
+        }
+      } else if (row < col) {
+        for (let r = 0; r <= row; r++) {
+          if (r < col) paintCell(r, col, value);
+        }
+      } else {
+        for (let c = 0; c <= col; c++) {
+          if (c < row) paintCell(row, c, value);
+        }
+      }
+    },
+    [paintCell]
+  );
+
   const handleMouseDown = useCallback(
     (row: number, col: number, e: React.MouseEvent) => {
-      if (e.button === 2) return; // right click handled by context menu
+      if (e.button === 2) return;
       e.preventDefault();
       pushUndo();
-      // Toggle: if currently selected, paint 0; else paint brushWeight
+
+      if (e.metaKey || e.ctrlKey) {
+        const newValue = range[row][col] > 0 ? 0 : brushWeight;
+        paintValueRef.current = newValue;
+        cmdDragRef.current = true;
+        applyCmdSelect(row, col, newValue);
+        setIsDragging(true);
+        return;
+      }
+
       const newValue = range[row][col] > 0 ? 0 : brushWeight;
       paintValueRef.current = newValue;
+      cmdDragRef.current = false;
       paintCell(row, col, newValue);
       setIsDragging(true);
     },
-    [range, paintCell, pushUndo]
+    [range, paintCell, pushUndo, brushWeight, applyCmdSelect]
   );
 
   const handleMouseEnter = useCallback(
     (row: number, col: number) => {
-      if (isDragging) {
+      if (!isDragging) return;
+      if (cmdDragRef.current) {
+        applyCmdSelect(row, col, paintValueRef.current);
+      } else {
         paintCell(row, col, paintValueRef.current);
       }
     },
-    [isDragging, paintCell]
+    [isDragging, paintCell, applyCmdSelect]
   );
 
   const handleMouseUp = useCallback(() => {
