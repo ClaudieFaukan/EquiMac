@@ -1,10 +1,40 @@
 @import "tailwindcss";
 
-:root {
+/* Dark theme (default) */
+:root, [data-theme="dark"] {
   --felt-green: #2d6b3f;
   --felt-green-light: #3a8a52;
   --poker-red: #dc2626;
   --poker-gold: #f59e0b;
+
+  --bg-app: #18181b;
+  --bg-primary: #27272a;
+  --bg-secondary: #3f3f46;
+  --bg-input: #09090b;
+  --border-primary: #3f3f46;
+  --border-secondary: #52525b;
+  --text-primary: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --text-faint: #52525b;
+  --titlebar-bg: #18181b;
+  --titlebar-text: #71717a;
+}
+
+/* Light theme */
+[data-theme="light"] {
+  --bg-app: #f4f4f5;
+  --bg-primary: #ffffff;
+  --bg-secondary: #e4e4e7;
+  --bg-input: #ffffff;
+  --border-primary: #d4d4d8;
+  --border-secondary: #a1a1aa;
+  --text-primary: #18181b;
+  --text-secondary: #3f3f46;
+  --text-muted: #71717a;
+  --text-faint: #a1a1aa;
+  --titlebar-bg: #e4e4e7;
+  --titlebar-text: #71717a;
 }
 
 body {
@@ -13,8 +43,72 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   user-select: none;
+  background-color: var(--bg-app);
+  color: var(--text-primary);
 }
 
 .font-mono-poker {
   font-family: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
+}
+
+/*
+ * Light theme overrides: remap dark zinc classes to light equivalents.
+ * This avoids modifying every component — Tailwind classes stay the same,
+ * but the rendered colors invert in light mode.
+ */
+[data-theme="light"] {
+  /* Background overrides */
+  .bg-zinc-900 { background-color: #f4f4f5 !important; }
+  .bg-zinc-800 { background-color: #ffffff !important; }
+  .bg-zinc-800\/50 { background-color: rgba(255,255,255,0.5) !important; }
+  .bg-zinc-700 { background-color: #e4e4e7 !important; }
+  .bg-zinc-900\/50 { background-color: rgba(244,244,245,0.5) !important; }
+
+  /* Text overrides */
+  .text-zinc-100 { color: #18181b !important; }
+  .text-zinc-200 { color: #27272a !important; }
+  .text-zinc-300 { color: #3f3f46 !important; }
+  .text-zinc-400 { color: #52525b !important; }
+  .text-zinc-500 { color: #71717a !important; }
+  .text-zinc-600 { color: #a1a1aa !important; }
+  .text-zinc-700 { color: #d4d4d8 !important; }
+  .text-white { color: #ffffff !important; }
+
+  /* Border overrides */
+  .border-zinc-700 { border-color: #d4d4d8 !important; }
+  .border-zinc-700\/50 { border-color: rgba(212,212,216,0.5) !important; }
+  .border-zinc-600 { border-color: #a1a1aa !important; }
+  .border-zinc-800 { border-color: #e4e4e7 !important; }
+
+  /* Input overrides */
+  .bg-zinc-900.border.border-zinc-600,
+  .bg-zinc-900.border.border-zinc-700 {
+    background-color: #ffffff !important;
+    border-color: #d4d4d8 !important;
+  }
+
+  /* Placeholder */
+  .placeholder-zinc-600::placeholder { color: #a1a1aa !important; }
+
+  /* Dividers */
+  .bg-zinc-700.w-px,
+  .w-px.bg-zinc-700 { background-color: #d4d4d8 !important; }
+
+  /* Range grid cell backgrounds — keep subtle tints */
+  .bg-amber-900\/40 { background-color: rgba(245, 158, 11, 0.15) !important; }
+  .bg-rose-900\/30 { background-color: rgba(244, 63, 94, 0.12) !important; }
+  .bg-sky-900\/20 { background-color: rgba(14, 165, 233, 0.1) !important; }
+
+  /* Hover states */
+  .hover\:bg-zinc-600:hover { background-color: #d4d4d8 !important; }
+  .hover\:bg-zinc-700:hover { background-color: #e4e4e7 !important; }
+  .hover\:text-zinc-300:hover { color: #3f3f46 !important; }
+  .hover\:text-zinc-200:hover { color: #27272a !important; }
+
+  /* Scroll/selection */
+  ::-webkit-scrollbar-track { background: #f4f4f5; }
+  ::-webkit-scrollbar-thumb { background: #d4d4d8; }
+
+  /* Drop shadow for readability */
+  .drop-shadow-sm { filter: none !important; }
 }

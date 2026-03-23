@@ -1,5 +1,6 @@
 import React from 'react';
-import { RANKS, SUITS, SUIT_SYMBOLS, SUIT_COLORS, getHandType } from '../../engine/constants';
+import { RANKS, SUITS, SUIT_SYMBOLS, getHandType } from '../../engine/constants';
+import { useSuitColors } from '../../hooks/useSuitColors';
 
 interface SuitSubGridProps {
   row: number;
@@ -59,6 +60,7 @@ function getCombos(row: number, col: number): ComboInfo[] {
 }
 
 export function SuitSubGrid({ row, col, position, onClose }: SuitSubGridProps) {
+  const suitColors = useSuitColors();
   const combos = getCombos(row, col);
   const type = getHandType(row, col);
   const r1 = RANKS[row];
@@ -87,10 +89,10 @@ export function SuitSubGrid({ row, col, position, onClose }: SuitSubGridProps) {
               key={combo.label}
               className="px-2 py-1 text-xs font-mono-poker rounded bg-zinc-700 hover:bg-zinc-600 cursor-pointer text-center whitespace-nowrap"
             >
-              <span style={{ color: SUIT_COLORS[combo.suit1 as keyof typeof SUIT_COLORS] }}>
+              <span style={{ color: suitColors[combo.suit1 as keyof typeof suitColors] }}>
                 {combo.label.slice(0, 2)}
               </span>
-              <span style={{ color: SUIT_COLORS[combo.suit2 as keyof typeof SUIT_COLORS] }}>
+              <span style={{ color: suitColors[combo.suit2 as keyof typeof suitColors] }}>
                 {combo.label.slice(2)}
               </span>
             </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { type Card, cardSuit } from '../../engine/evaluator';
-import { SUIT_SYMBOLS, SUIT_COLORS, type Suit } from '../../engine/constants';
+import { SUIT_SYMBOLS, type Suit } from '../../engine/constants';
+import { useSuitColors } from '../../hooks/useSuitColors';
 import { CardPicker } from '../BoardSelector/CardPicker';
 
 interface DeadCardsProps {
@@ -12,6 +13,7 @@ interface DeadCardsProps {
 const SUITS_MAP: Suit[] = ['s', 'h', 'd', 'c'];
 
 export function DeadCards({ deadCards, onDeadCardsChange, usedCards }: DeadCardsProps) {
+  const suitColors = useSuitColors();
   const [showPicker, setShowPicker] = useState(false);
   const [pickerPos, setPickerPos] = useState<{ x: number; y: number } | undefined>();
 
@@ -54,7 +56,7 @@ export function DeadCards({ deadCards, onDeadCardsChange, usedCards }: DeadCards
               key={i}
               onClick={() => handleRemove(i)}
               className="w-7 h-8 rounded bg-zinc-700 border border-zinc-600 text-[11px] font-mono-poker font-bold flex items-center justify-center hover:bg-red-900/50 transition-colors"
-              style={{ color: SUIT_COLORS[suit] }}
+              style={{ color: suitColors[suit] }}
               title="Cliquer pour retirer"
             >
               {rankChar}{SUIT_SYMBOLS[suit]}

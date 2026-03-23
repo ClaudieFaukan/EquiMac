@@ -1,144 +1,134 @@
 /**
  * Monte Carlo equity calculator.
- * Calculates win/tie/lose probabilities for range vs range scenarios.
+ * Optimized: avoids allocations in hot loop, uses array indexing instead of Set/filter.
  */
 
-import { Card, evaluate7, buildDeck, cardToString } from './evaluator';
+import { Card, evaluate7, buildDeck } from './evaluator';
 import { Combo, generateCombosFromRange, sampleCombo } from './combos';
 import type { RangeMatrix } from './ranges';
 
 export interface EquityResult {
-  /** Equity per player (0-1) */
   equity: number[];
-  /** Win percentage per player */
   wins: number[];
-  /** Tie percentage per player */
   ties: number[];
-  /** Total simulations run */
   iterations: number;
-  /** Time in ms */
   timeMs: number;
 }
 
 export interface EquityInput {
-  /** Range matrix per player (at least 2) */
   ranges: RangeMatrix[];
-  /** Board cards (0-5 cards) */
   board: Card[];
-  /** Dead cards */
   deadCards: Card[];
-  /** Number of iterations (default 100000) */
   iterations?: number;
 }
 
 /**
- * Run Monte Carlo equity simulation.
- *
- * For each iteration:
- * 1. Sample a random combo from each player's range (respecting card removal)
- * 2. Deal remaining board cards from the deck
- * 3. Evaluate each player's 7-card hand
- * 4. Track wins and ties
+ * Run Monte Carlo equity simulation (optimized).
  */
 export function calculateEquity(input: EquityInput): EquityResult {
   const startTime = performance.now();
   const numPlayers = input.ranges.length;
   const maxIterations = input.iterations ?? 100000;
 
-  const wins = new Array(numPlayers).fill(0);
-  const ties = new Array(numPlayers).fill(0);
+  const wins = new Int32Array(numPlayers);
+  const ties = new Int32Array(numPlayers);
   let validIterations = 0;
 
-  // Dead cards set: board + explicitly dead cards
   const baseDead = new Set<Card>([...input.board, ...input.deadCards]);
-
-  // Pre-generate combos for each player (excluding board + dead cards)
   const playerCombos: Combo[][] = input.ranges.map(range =>
     generateCombosFromRange(range, baseDead)
   );
-
-  // Number of board cards to deal
   const boardCardsToDeal = 5 - input.board.length;
-
-  // Available deck (excluding board + dead cards)
   const baseDeckCards = buildDeck().filter(c => !baseDead.has(c));
 
+  // Pre-allocate reusable arrays
+  const used = new Uint8Array(52); // card usage flags
+  const tempDeck = new Array(baseDeckCards.length);
+  const board7 = new Array(7); // reusable 7-card hand
+  const ranks = new Array(numPlayers);
+  const playerHands = new Array(numPlayers);
+
   for (let iter = 0; iter < maxIterations; iter++) {
-    // Sample a combo for each player, respecting mutual card removal
-    const usedCards = new Set<Card>();
-    const playerHands: [Card, Card][] = [];
+    // Reset used flags
+    used.fill(0);
     let valid = true;
 
     for (let p = 0; p < numPlayers; p++) {
-      // Filter combos that don't conflict with already-used cards
-      const available = playerCombos[p].filter(
-        c => !usedCards.has(c.cards[0]) && !usedCards.has(c.cards[1])
-      );
-
-      if (available.length === 0) {
-        valid = false;
+      const combos = playerCombos[p];
+      // Sample with rejection for card conflicts
+      let found = false;
+      for (let attempt = 0; attempt < 100; attempt++) {
+        const idx = Math.floor(Math.random() * combos.length);
+        const combo = combos[idx];
+        const c0 = combo.cards[0];
+        const c1 = combo.cards[1];
+        if (used[c0] || used[c1]) continue;
+        // Weight check
+        if (combo.weight < 1 && Math.random() >= combo.weight) continue;
+        playerHands[p] = combo.cards;
+        used[c0] = 1;
+        used[c1] = 1;
+        found = true;
         break;
       }
-
-      const idx = sampleCombo(available);
-      if (idx === -1) {
-        valid = false;
-        break;
-      }
-
-      const combo = available[idx];
-      playerHands.push(combo.cards);
-      usedCards.add(combo.cards[0]);
-      usedCards.add(combo.cards[1]);
+      if (!found) { valid = false; break; }
     }
-
     if (!valid) continue;
 
-    // Deal remaining board cards
-    const deckForRound = baseDeckCards.filter(c => !usedCards.has(c));
+    // Build available deck for this round
+    let deckLen = 0;
+    for (let i = 0; i < baseDeckCards.length; i++) {
+      if (!used[baseDeckCards[i]]) {
+        tempDeck[deckLen++] = baseDeckCards[i];
+      }
+    }
+    if (deckLen < boardCardsToDeal) continue;
 
-    if (deckForRound.length < boardCardsToDeal) continue;
-
-    // Partial Fisher-Yates to pick boardCardsToDeal cards
-    const board = [...input.board];
+    // Copy fixed board cards
+    const boardLen = input.board.length;
+    for (let i = 0; i < boardLen; i++) {
+      board7[2 + i] = input.board[i];
+    }
+    // Deal remaining board cards (partial Fisher-Yates)
     for (let i = 0; i < boardCardsToDeal; i++) {
-      const j = i + Math.floor(Math.random() * (deckForRound.length - i));
-      const tmp = deckForRound[i];
-      deckForRound[i] = deckForRound[j];
-      deckForRound[j] = tmp;
-      board.push(deckForRound[i]);
+      const j = i + Math.floor(Math.random() * (deckLen - i));
+      const tmp = tempDeck[i];
+      tempDeck[i] = tempDeck[j];
+      tempDeck[j] = tmp;
+      board7[2 + boardLen + i] = tempDeck[i];
     }
 
-    // Evaluate each player's hand (2 hole cards + 5 board cards = 7 cards)
-    const ranks = new Array(numPlayers);
-    for (let p = 0; p < numPlayers; p++) {
-      const sevenCards = [...playerHands[p], ...board];
-      ranks[p] = evaluate7(sevenCards);
-    }
-
-    // Find winner(s) - lowest rank wins
+    // Evaluate hands
     let bestRank = Infinity;
     for (let p = 0; p < numPlayers; p++) {
+      const hand = playerHands[p];
+      board7[0] = hand[0];
+      board7[1] = hand[1];
+      ranks[p] = evaluate7(board7);
       if (ranks[p] < bestRank) bestRank = ranks[p];
     }
 
-    const winners: number[] = [];
+    // Count winners
+    let winnerCount = 0;
+    let singleWinner = -1;
     for (let p = 0; p < numPlayers; p++) {
-      if (ranks[p] === bestRank) winners.push(p);
+      if (ranks[p] === bestRank) {
+        winnerCount++;
+        singleWinner = p;
+      }
     }
 
-    if (winners.length === 1) {
-      wins[winners[0]]++;
+    if (winnerCount === 1) {
+      wins[singleWinner]++;
     } else {
-      for (const w of winners) {
-        ties[w]++;
+      for (let p = 0; p < numPlayers; p++) {
+        if (ranks[p] === bestRank) ties[p]++;
       }
     }
 
     validIterations++;
   }
 
-  // Calculate equity: win + tie_share
   const equity = new Array(numPlayers);
   const winPct = new Array(numPlayers);
   const tiePct = new Array(numPlayers);
@@ -147,7 +137,6 @@ export function calculateEquity(input: EquityInput): EquityResult {
     if (validIterations > 0) {
       winPct[p] = wins[p] / validIterations;
       tiePct[p] = ties[p] / validIterations;
-      // Equity = win% + (tie% / avg_tied_players) — simplified as win + tie_share
       equity[p] = winPct[p] + tiePct[p] / 2;
     } else {
       winPct[p] = 0;
@@ -157,17 +146,14 @@ export function calculateEquity(input: EquityInput): EquityResult {
   }
 
   return {
-    equity,
-    wins: winPct,
-    ties: tiePct,
+    equity, wins: winPct, ties: tiePct,
     iterations: validIterations,
     timeMs: performance.now() - startTime,
   };
 }
 
 /**
- * Calculate equity for a specific hand vs a range.
- * Convenience wrapper where player 1 has a specific hand.
+ * Calculate equity for a specific hand vs a range (optimized).
  */
 export function calculateHandVsRange(
   hand: [Card, Card],
@@ -177,16 +163,12 @@ export function calculateHandVsRange(
   iterations: number = 100000,
 ): EquityResult {
   const startTime = performance.now();
-  const maxIterations = iterations;
 
-  let wins = 0;
-  let tiesCount = 0;
+  let heroWins = 0;
+  let tieCount = 0;
   let validIterations = 0;
 
-  // Dead cards: board + dead + hero's hand
   const baseDead = new Set<Card>([...board, ...deadCards, hand[0], hand[1]]);
-
-  // Villain combos
   const villainCombos = generateCombosFromRange(villainRange, baseDead);
   if (villainCombos.length === 0) {
     return { equity: [0, 0], wins: [0, 0], ties: [0, 0], iterations: 0, timeMs: 0 };
@@ -195,44 +177,57 @@ export function calculateHandVsRange(
   const boardCardsToDeal = 5 - board.length;
   const baseDeckCards = buildDeck().filter(c => !baseDead.has(c));
 
-  for (let iter = 0; iter < maxIterations; iter++) {
-    // Sample villain's hand
-    const available = villainCombos;
-    const idx = sampleCombo(available);
-    if (idx === -1) continue;
+  const tempDeck = new Array(baseDeckCards.length);
+  const hero7 = new Array(7);
+  const villain7 = new Array(7);
+  hero7[0] = hand[0];
+  hero7[1] = hand[1];
+  for (let i = 0; i < board.length; i++) {
+    hero7[2 + i] = board[i];
+    villain7[2 + i] = board[i];
+  }
 
-    const villainHand = available[idx].cards;
+  for (let iter = 0; iter < iterations; iter++) {
+    // Sample villain combo
+    const idx = Math.floor(Math.random() * villainCombos.length);
+    const combo = villainCombos[idx];
+    if (combo.weight < 1 && Math.random() >= combo.weight) continue;
 
-    // Deal board
-    const deckForRound = baseDeckCards.filter(
-      c => c !== villainHand[0] && c !== villainHand[1]
-    );
+    const vc0 = combo.cards[0];
+    const vc1 = combo.cards[1];
 
-    if (deckForRound.length < boardCardsToDeal) continue;
+    // Build deck excluding villain cards
+    let deckLen = 0;
+    for (let i = 0; i < baseDeckCards.length; i++) {
+      const c = baseDeckCards[i];
+      if (c !== vc0 && c !== vc1) tempDeck[deckLen++] = c;
+    }
+    if (deckLen < boardCardsToDeal) continue;
 
-    const fullBoard = [...board];
+    // Deal board cards
     for (let i = 0; i < boardCardsToDeal; i++) {
-      const j = i + Math.floor(Math.random() * (deckForRound.length - i));
-      const tmp = deckForRound[i];
-      deckForRound[i] = deckForRound[j];
-      deckForRound[j] = tmp;
-      fullBoard.push(deckForRound[i]);
+      const j = i + Math.floor(Math.random() * (deckLen - i));
+      const tmp = tempDeck[i];
+      tempDeck[i] = tempDeck[j];
+      tempDeck[j] = tmp;
+      hero7[2 + board.length + i] = tempDeck[i];
+      villain7[2 + board.length + i] = tempDeck[i];
     }
 
-    const heroRank = evaluate7([...hand, ...fullBoard]);
-    const villainRank = evaluate7([...villainHand, ...fullBoard]);
+    villain7[0] = vc0;
+    villain7[1] = vc1;
 
-    if (heroRank < villainRank) {
-      wins++;
-    } else if (heroRank === villainRank) {
-      tiesCount++;
-    }
+    const heroRank = evaluate7(hero7);
+    const villainRank = evaluate7(villain7);
+
+    if (heroRank < villainRank) heroWins++;
+    else if (heroRank === villainRank) tieCount++;
 
     validIterations++;
   }
 
-  const heroWinPct = validIterations > 0 ? wins / validIterations : 0;
-  const heroTiePct = validIterations > 0 ? tiesCount / validIterations : 0;
+  const heroWinPct = validIterations > 0 ? heroWins / validIterations : 0;
+  const heroTiePct = validIterations > 0 ? tieCount / validIterations : 0;
   const heroEquity = heroWinPct + heroTiePct / 2;
 
   return {

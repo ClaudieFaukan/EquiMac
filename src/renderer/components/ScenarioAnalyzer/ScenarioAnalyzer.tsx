@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { type Card } from '../../engine/evaluator';
-import { SUIT_SYMBOLS, SUIT_COLORS, type Suit } from '../../engine/constants';
+import { SUIT_SYMBOLS, type Suit } from '../../engine/constants';
+import { useSuitColors } from '../../hooks/useSuitColors';
 import type { RangeMatrix } from '../../engine/ranges';
 import type { ScenarioResult, CardEquity } from '../../engine/scenario';
 
@@ -21,18 +22,19 @@ function equityColor(equity: number, baseEquity: number): string {
   return 'text-zinc-400';
 }
 
-function CardLabel({ card }: { card: Card }) {
+function CardLabel({ card, suitColors }: { card: Card; suitColors: Record<Suit, string> }) {
   const ranks = '23456789TJQKA';
   const rankChar = ranks[card >> 2];
   const suit = SUITS_MAP[card & 3];
   return (
-    <span className="font-mono-poker font-bold" style={{ color: SUIT_COLORS[suit] }}>
+    <span className="font-mono-poker font-bold" style={{ color: suitColors[suit] }}>
       {rankChar}{SUIT_SYMBOLS[suit]}
     </span>
   );
 }
 
 export function ScenarioAnalyzer({ ranges, board, deadCards }: ScenarioAnalyzerProps) {
+  const suitColors = useSuitColors();
   const [result, setResult] = useState<ScenarioResult | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const [sortBy, setSortBy] = useState<'equity' | 'card'>('equity');
@@ -141,7 +143,7 @@ export function ScenarioAnalyzer({ ranges, board, deadCards }: ScenarioAnalyzerP
                   return (
                     <tr key={ce.card} className="border-t border-zinc-800 hover:bg-zinc-800/50">
                       <td className="px-2 py-0.5">
-                        <CardLabel card={ce.card} />
+                        <CardLabel card={ce.card} suitColors={suitColors} />
                       </td>
                       <td className={`text-right px-2 py-0.5 font-mono-poker ${equityColor(ce.equities[0], result.baseEquities[0])}`}>
                         {(ce.equities[0] * 100).toFixed(1)}%

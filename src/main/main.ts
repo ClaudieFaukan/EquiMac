@@ -10,7 +10,7 @@ function createWindow() {
     minWidth: 1024,
     minHeight: 700,
     titleBarStyle: 'hiddenInset',
-    backgroundColor: '#18181b',
+    backgroundColor: '#18181b', // Will be overridden by theme CSS
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,

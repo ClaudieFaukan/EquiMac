@@ -1,7 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { type Card, makeCard, cardToString } from '../../engine/evaluator';
-import { SUIT_SYMBOLS, SUIT_COLORS, type Suit } from '../../engine/constants';
+import { SUIT_SYMBOLS, type Suit } from '../../engine/constants';
+import { useSuitColors } from '../../hooks/useSuitColors';
 import { parseRangeNotation } from '../../engine/ranges';
+import { useQuizStore } from '../../store/quizStore';
+import { type Questionnaire } from '../../data/quiz-types';
+import { ActionQuiz } from './ActionQuiz';
+import { QuizManager } from './QuizManager';
 
 const SUITS_MAP: Suit[] = ['s', 'h', 'd', 'c'];
 
@@ -47,12 +52,12 @@ function randomBoard(mode: 'preflop' | 'flop'): Card[] {
   return board;
 }
 
-function CardDisplay({ card }: { card: Card }) {
+function CardDisplay({ card, suitColors }: { card: Card; suitColors: Record<Suit, string> }) {
   const ranks = '23456789TJQKA';
   const rankChar = ranks[card >> 2];
   const suit = SUITS_MAP[card & 3];
   return (
-    <span className="font-mono-poker font-bold" style={{ color: SUIT_COLORS[suit] }}>
+    <span className="font-mono-poker font-bold" style={{ color: suitColors[suit] }}>
       {rankChar}{SUIT_SYMBOLS[suit]}
     </span>
   );
@@ -64,24 +69,22 @@ function buildHeroRange(cards: [Card, Card]) {
   const g2 = 12 - (cards[1] >> 2);
   const s1 = cards[0] & 3;
   const s2 = cards[1] & 3;
-  if (g1 === g2) {
-    r[g1][g2] = 1;
-  } else if (s1 === s2) {
-    r[Math.min(g1, g2)][Math.max(g1, g2)] = 1;
-  } else {
-    r[Math.max(g1, g2)][Math.min(g1, g2)] = 1;
-  }
+  if (g1 === g2) { r[g1][g2] = 1; }
+  else if (s1 === s2) { r[Math.min(g1, g2)][Math.max(g1, g2)] = 1; }
+  else { r[Math.max(g1, g2)][Math.min(g1, g2)] = 1; }
   return r;
 }
 
-type Phase = 'setup' | 'playing' | 'results';
+type Phase = 'menu' | 'equity-setup' | 'equity-playing' | 'equity-results' | 'action-playing' | 'manage';
 
 export function EquityTrainer() {
-  const [phase, setPhase] = useState<Phase>('setup');
+  const [phase, setPhase] = useState<Phase>('menu');
   const [mode, setMode] = useState<'preflop' | 'flop'>('preflop');
   const [totalQuestions, setTotalQuestions] = useState(10);
   const [customCount, setCustomCount] = useState('');
+  const [selectedQuestionnaire, setSelectedQuestionnaire] = useState<Questionnaire | null>(null);
 
+  // Equity quiz state
   const [currentIndex, setCurrentIndex] = useState(0);
   const [round, setRound] = useState<QuizRound | null>(null);
   const [guess, setGuess] = useState(50);
@@ -89,6 +92,11 @@ export function EquityTrainer() {
   const [revealed, setRevealed] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
   const workerRef = useRef<Worker | null>(null);
+
+  const suitColors = useSuitColors();
+  const getActiveQuestionnaires = useQuizStore(s => s.getActiveQuestionnaires);
+  const activeQuestionnaires = getActiveQuestionnaires();
+  const actionQuizzes = activeQuestionnaires.filter(q => q.type === 'action');
 
   useEffect(() => {
     const worker = new Worker(
@@ -114,12 +122,9 @@ export function EquityTrainer() {
     const handler = (e: MessageEvent) => {
       if (e.data.type === 'result') {
         setRound({
-          heroCards: hero.cards,
-          villainNotation,
-          board,
+          heroCards: hero.cards, villainNotation, board,
           correctEquity: Math.round(e.data.result.equity[0] * 1000) / 10,
-          guessedEquity: null,
-          error: null,
+          guessedEquity: null, error: null,
         });
       }
       setIsCalculating(false);
@@ -128,20 +133,15 @@ export function EquityTrainer() {
     worker.addEventListener('message', handler);
     worker.postMessage({
       type: 'calculate',
-      input: {
-        ranges: [buildHeroRange(hero.cards), villainRange],
-        board,
-        deadCards: [],
-        iterations: 30000,
-      },
+      input: { ranges: [buildHeroRange(hero.cards), villainRange], board, deadCards: [], iterations: 30000 },
     });
   }, []);
 
-  const handleStart = (m: 'preflop' | 'flop') => {
+  const handleStartEquity = (m: 'preflop' | 'flop') => {
     setMode(m);
     setHistory([]);
     setCurrentIndex(0);
-    setPhase('playing');
+    setPhase('equity-playing');
     generateRound(m);
   };
 
@@ -155,124 +155,61 @@ export function EquityTrainer() {
   };
 
   const handleNext = () => {
-    const nextIndex = currentIndex + 1;
-    if (nextIndex >= totalQuestions) {
-      setPhase('results');
+    if (currentIndex + 1 >= totalQuestions) {
+      setPhase('equity-results');
       return;
     }
-    setCurrentIndex(nextIndex);
+    setCurrentIndex(currentIndex + 1);
     generateRound(mode);
   };
 
-  const handleBackToSetup = () => {
-    setPhase('setup');
+  const handleStartAction = (q: Questionnaire) => {
+    setSelectedQuestionnaire(q);
+    setPhase('action-playing');
+  };
+
+  const backToMenu = () => {
+    setPhase('menu');
+    setSelectedQuestionnaire(null);
     setRound(null);
     setHistory([]);
     setCurrentIndex(0);
   };
 
   const avgError = history.length > 0
-    ? history.reduce((sum, r) => sum + (r.error ?? 0), 0) / history.length
-    : 0;
-
+    ? history.reduce((sum, r) => sum + (r.error ?? 0), 0) / history.length : 0;
   const excellentCount = history.filter(r => (r.error ?? 99) <= 5).length;
   const okCount = history.filter(r => (r.error ?? 99) > 5 && (r.error ?? 99) <= 10).length;
   const badCount = history.filter(r => (r.error ?? 99) > 10).length;
 
-  // ── SETUP SCREEN ──
-  if (phase === 'setup') {
-    return (
-      <div className="flex flex-col gap-4">
-        <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Quiz d'equity</span>
-
-        {/* Question count */}
-        <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-4 space-y-3">
-          <span className="text-xs text-zinc-400">Nombre de questions</span>
-          <div className="flex gap-2">
-            {[10, 20].map(n => (
-              <button
-                key={n}
-                onClick={() => { setTotalQuestions(n); setCustomCount(''); }}
-                className={`px-4 py-2 rounded text-sm font-semibold transition-colors ${
-                  totalQuestions === n && !customCount
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-zinc-700 text-zinc-400 hover:bg-zinc-600'
-                }`}
-              >
-                {n}
-              </button>
-            ))}
-            <input
-              type="number"
-              min={1}
-              max={99}
-              value={customCount}
-              onChange={(e) => {
-                setCustomCount(e.target.value);
-                const v = parseInt(e.target.value);
-                if (v > 0 && v <= 99) setTotalQuestions(v);
-              }}
-              placeholder="Libre"
-              className="w-20 bg-zinc-900 border border-zinc-600 rounded px-2 py-2 text-sm font-mono-poker text-zinc-200 placeholder-zinc-600 text-center focus:outline-none focus:border-purple-600"
-            />
-          </div>
-        </div>
-
-        {/* Mode buttons */}
-        <div className="flex gap-3">
-          <button
-            onClick={() => handleStart('preflop')}
-            className="flex-1 py-4 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-sm transition-colors space-y-1"
-          >
-            <div>Preflop</div>
-            <div className="text-[10px] font-normal text-purple-200">Main vs Range</div>
-          </button>
-          <button
-            onClick={() => handleStart('flop')}
-            className="flex-1 py-4 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-sm transition-colors space-y-1"
-          >
-            <div>Postflop</div>
-            <div className="text-[10px] font-normal text-purple-200">Main vs Range + Board</div>
-          </button>
-        </div>
-      </div>
-    );
+  // ── MANAGE ──
+  if (phase === 'manage') {
+    return <QuizManager onBack={backToMenu} />;
   }
 
-  // ── RESULTS SCREEN ──
-  if (phase === 'results') {
+  // ── ACTION QUIZ ──
+  if (phase === 'action-playing' && selectedQuestionnaire) {
+    return <ActionQuiz questionnaire={selectedQuestionnaire} onFinish={backToMenu} />;
+  }
+
+  // ── EQUITY RESULTS ──
+  if (phase === 'equity-results') {
     return (
       <div className="flex flex-col gap-4">
         <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
           Résultats — {mode === 'preflop' ? 'Preflop' : 'Postflop'}
         </span>
-
         <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-5 space-y-4 text-center">
           <div className={`text-3xl font-bold font-mono-poker ${avgError <= 5 ? 'text-emerald-400' : avgError <= 10 ? 'text-amber-400' : 'text-red-400'}`}>
             {avgError.toFixed(1)}%
           </div>
           <div className="text-sm text-zinc-400">Écart moyen sur {history.length} questions</div>
-
           <div className="flex justify-center gap-6 text-sm">
-            <div className="text-center">
-              <div className="text-emerald-400 font-bold text-lg">{excellentCount}</div>
-              <div className="text-[10px] text-zinc-500">Excellent</div>
-              <div className="text-[10px] text-zinc-600">(&le;5%)</div>
-            </div>
-            <div className="text-center">
-              <div className="text-amber-400 font-bold text-lg">{okCount}</div>
-              <div className="text-[10px] text-zinc-500">Pas mal</div>
-              <div className="text-[10px] text-zinc-600">(5-10%)</div>
-            </div>
-            <div className="text-center">
-              <div className="text-red-400 font-bold text-lg">{badCount}</div>
-              <div className="text-[10px] text-zinc-500">À travailler</div>
-              <div className="text-[10px] text-zinc-600">(&gt;10%)</div>
-            </div>
+            <div className="text-center"><div className="text-emerald-400 font-bold text-lg">{excellentCount}</div><div className="text-[10px] text-zinc-500">Excellent (&le;5%)</div></div>
+            <div className="text-center"><div className="text-amber-400 font-bold text-lg">{okCount}</div><div className="text-[10px] text-zinc-500">Pas mal (5-10%)</div></div>
+            <div className="text-center"><div className="text-red-400 font-bold text-lg">{badCount}</div><div className="text-[10px] text-zinc-500">À travailler (&gt;10%)</div></div>
           </div>
         </div>
-
-        {/* History detail */}
         <div className="max-h-48 overflow-y-auto rounded border border-zinc-700">
           <table className="w-full text-[11px]">
             <thead className="bg-zinc-800 sticky top-0">
@@ -288,150 +225,157 @@ export function EquityTrainer() {
               {history.map((r, i) => (
                 <tr key={i} className="border-t border-zinc-800">
                   <td className="px-2 py-0.5 text-zinc-600">{i + 1}</td>
-                  <td className="px-2 py-0.5">
-                    <CardDisplay card={r.heroCards[0]} /> <CardDisplay card={r.heroCards[1]} />
-                  </td>
+                  <td className="px-2 py-0.5"><CardDisplay card={r.heroCards[0]} suitColors={suitColors} /> <CardDisplay card={r.heroCards[1]} suitColors={suitColors} /></td>
                   <td className="text-right px-2 py-0.5 font-mono-poker text-zinc-300">{r.correctEquity}%</td>
                   <td className="text-right px-2 py-0.5 font-mono-poker text-purple-400">{r.guessedEquity}%</td>
-                  <td className={`text-right px-2 py-0.5 font-mono-poker font-bold ${
-                    (r.error ?? 99) <= 5 ? 'text-emerald-400' : (r.error ?? 99) <= 10 ? 'text-amber-400' : 'text-red-400'
-                  }`}>
-                    {r.error?.toFixed(1)}%
-                  </td>
+                  <td className={`text-right px-2 py-0.5 font-mono-poker font-bold ${(r.error ?? 99) <= 5 ? 'text-emerald-400' : (r.error ?? 99) <= 10 ? 'text-amber-400' : 'text-red-400'}`}>{r.error?.toFixed(1)}%</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-
-        <button
-          onClick={handleBackToSetup}
-          className="w-full py-2.5 rounded-lg font-bold text-sm bg-purple-600 hover:bg-purple-500 text-white transition-colors"
-        >
-          Nouveau quiz
-        </button>
+        <button onClick={backToMenu} className="w-full py-2.5 rounded-lg font-bold text-sm bg-purple-600 hover:bg-purple-500 text-white transition-colors">Retour</button>
       </div>
     );
   }
 
-  // ── PLAYING SCREEN ──
+  // ── EQUITY PLAYING ──
+  if (phase === 'equity-playing') {
+    return (
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">{mode === 'preflop' ? 'Preflop' : 'Postflop'} — {currentIndex + 1}/{totalQuestions}</span>
+          <button onClick={backToMenu} className="text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors">Quitter</button>
+        </div>
+        <div className="h-1 bg-zinc-700 rounded-full overflow-hidden">
+          <div className="h-full bg-purple-600 transition-all duration-300" style={{ width: `${((currentIndex + (revealed ? 1 : 0)) / totalQuestions) * 100}%` }} />
+        </div>
+        {round && (
+          <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-4 space-y-3">
+            <div className="text-center">
+              <span className="text-[10px] text-zinc-500 uppercase tracking-wider block mb-1">Votre main</span>
+              <span className="text-2xl"><CardDisplay card={round.heroCards[0]} suitColors={suitColors} /> <CardDisplay card={round.heroCards[1]} suitColors={suitColors} /></span>
+            </div>
+            {round.board.length > 0 && (
+              <div className="text-center">
+                <span className="text-[10px] text-zinc-500 uppercase tracking-wider block mb-1">Board</span>
+                <span className="text-lg">{round.board.map((c, i) => <span key={i}><CardDisplay card={c} suitColors={suitColors} />{i < round.board.length - 1 && ' '}</span>)}</span>
+              </div>
+            )}
+            <div className="text-center">
+              <span className="text-[10px] text-zinc-500 uppercase tracking-wider block mb-1">Range adverse</span>
+              <span className="text-xs font-mono-poker text-zinc-300">{round.villainNotation}</span>
+            </div>
+            {!revealed && !isCalculating && (
+              <div className="space-y-2">
+                <div className="text-center text-sm text-zinc-400">Estimez votre equity : <span className="ml-2 text-lg font-bold text-purple-400 font-mono-poker">{guess}%</span></div>
+                <input type="range" min={0} max={100} value={guess} onChange={e => setGuess(Number(e.target.value))} className="w-full accent-purple-500" />
+                <button onClick={handleReveal} className="w-full py-2 rounded-lg font-bold text-sm bg-purple-600 hover:bg-purple-500 text-white transition-colors">Valider</button>
+              </div>
+            )}
+            {isCalculating && <div className="text-center text-sm text-zinc-500 py-4">Chargement...</div>}
+            {revealed && round.error !== null && (
+              <div className="space-y-3">
+                <div className="text-center space-y-1">
+                  <div className="text-sm">Réponse : <span className="font-bold text-emerald-400 font-mono-poker">{round.correctEquity}%</span></div>
+                  <div className="text-sm">Estimation : <span className="font-bold text-purple-400 font-mono-poker">{round.guessedEquity}%</span></div>
+                  <div className={`text-sm font-bold ${round.error <= 5 ? 'text-emerald-400' : round.error <= 10 ? 'text-amber-400' : 'text-red-400'}`}>
+                    Écart : {round.error.toFixed(1)}% {round.error <= 5 ? '— Excellent !' : round.error <= 10 ? '— Pas mal' : '— À travailler'}
+                  </div>
+                </div>
+                <button onClick={handleNext} className="w-full py-2 rounded-lg font-bold text-sm bg-purple-600 hover:bg-purple-500 text-white transition-colors">
+                  {currentIndex + 1 >= totalQuestions ? 'Voir les résultats' : 'Suivante'}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+        {history.length > 0 && (
+          <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-2">
+            <div className="flex justify-between text-[10px] text-zinc-500">
+              <span>{history.length}/{totalQuestions}</span>
+              <span>Écart moyen : <span className={`font-bold font-mono-poker ${avgError <= 5 ? 'text-emerald-400' : avgError <= 10 ? 'text-amber-400' : 'text-red-400'}`}>{avgError.toFixed(1)}%</span></span>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── EQUITY SETUP ──
+  if (phase === 'equity-setup') {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Quiz d'equity</span>
+          <button onClick={backToMenu} className="text-[10px] text-zinc-500 hover:text-zinc-300">Retour</button>
+        </div>
+        <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-4 space-y-3">
+          <span className="text-xs text-zinc-400">Nombre de questions</span>
+          <div className="flex gap-2">
+            {[10, 20].map(n => (
+              <button key={n} onClick={() => { setTotalQuestions(n); setCustomCount(''); }}
+                className={`px-4 py-2 rounded text-sm font-semibold transition-colors ${totalQuestions === n && !customCount ? 'bg-purple-600 text-white' : 'bg-zinc-700 text-zinc-400 hover:bg-zinc-600'}`}>{n}</button>
+            ))}
+            <input type="number" min={1} max={99} value={customCount}
+              onChange={e => { setCustomCount(e.target.value); const v = parseInt(e.target.value); if (v > 0 && v <= 99) setTotalQuestions(v); }}
+              placeholder="Libre"
+              className="w-20 bg-zinc-900 border border-zinc-600 rounded px-2 py-2 text-sm font-mono-poker text-zinc-200 placeholder-zinc-600 text-center focus:outline-none focus:border-purple-600" />
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <button onClick={() => handleStartEquity('preflop')}
+            className="flex-1 py-4 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-sm transition-colors">
+            <div>Preflop</div><div className="text-[10px] font-normal text-purple-200">Main vs Range</div>
+          </button>
+          <button onClick={() => handleStartEquity('flop')}
+            className="flex-1 py-4 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-sm transition-colors">
+            <div>Postflop</div><div className="text-[10px] font-normal text-purple-200">Main vs Range + Board</div>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── MAIN MENU ──
   return (
-    <div className="flex flex-col gap-3">
-      {/* Header */}
+    <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-          {mode === 'preflop' ? 'Preflop' : 'Postflop'} — {currentIndex + 1}/{totalQuestions}
-        </span>
-        <button
-          onClick={handleBackToSetup}
-          className="text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors"
-        >
-          Quitter
+        <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Quiz</span>
+        <button onClick={() => setPhase('manage')}
+          className="px-3 py-1 rounded text-[10px] font-semibold bg-zinc-700 text-zinc-300 hover:bg-zinc-600 transition-colors">
+          Gérer
         </button>
       </div>
 
-      {/* Progress bar */}
-      <div className="h-1 bg-zinc-700 rounded-full overflow-hidden">
-        <div
-          className="h-full bg-purple-600 transition-all duration-300"
-          style={{ width: `${((currentIndex + (revealed ? 1 : 0)) / totalQuestions) * 100}%` }}
-        />
-      </div>
+      {/* Equity quiz */}
+      <button
+        onClick={() => setPhase('equity-setup')}
+        className="w-full text-left bg-zinc-800 border border-zinc-700 rounded-lg p-4 hover:border-purple-600 transition-colors group"
+      >
+        <div className="text-sm font-semibold text-zinc-200 group-hover:text-purple-400 transition-colors">Quiz d'Equity</div>
+        <div className="text-[10px] text-zinc-500 mt-0.5">Estimez le pourcentage d'equity de votre main vs un range</div>
+      </button>
 
-      {/* Question */}
-      {round && (
-        <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-4 space-y-3">
-          <div className="text-center">
-            <span className="text-[10px] text-zinc-500 uppercase tracking-wider block mb-1">Votre main</span>
-            <span className="text-2xl">
-              <CardDisplay card={round.heroCards[0]} />
-              {' '}
-              <CardDisplay card={round.heroCards[1]} />
-            </span>
-          </div>
-
-          {round.board.length > 0 && (
-            <div className="text-center">
-              <span className="text-[10px] text-zinc-500 uppercase tracking-wider block mb-1">Board</span>
-              <span className="text-lg">
-                {round.board.map((c, i) => (
-                  <span key={i}>
-                    <CardDisplay card={c} />
-                    {i < round.board.length - 1 && ' '}
-                  </span>
-                ))}
-              </span>
-            </div>
-          )}
-
-          <div className="text-center">
-            <span className="text-[10px] text-zinc-500 uppercase tracking-wider block mb-1">Range adverse</span>
-            <span className="text-xs font-mono-poker text-zinc-300">{round.villainNotation}</span>
-          </div>
-
-          {!revealed && !isCalculating && (
-            <div className="space-y-2">
-              <div className="text-center text-sm text-zinc-400">
-                Estimez votre equity :
-                <span className="ml-2 text-lg font-bold text-purple-400 font-mono-poker">{guess}%</span>
+      {/* Action quizzes */}
+      {actionQuizzes.length > 0 && (
+        <div className="space-y-1">
+          <span className="text-[10px] text-zinc-600 uppercase tracking-wider">Questionnaires d'actions</span>
+          {actionQuizzes.map(q => (
+            <button
+              key={q.id}
+              onClick={() => handleStartAction(q)}
+              className="w-full text-left bg-zinc-800 border border-zinc-700 rounded-lg p-3 hover:border-purple-600 transition-colors group"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-[11px] font-semibold text-zinc-200 group-hover:text-purple-400 transition-colors">{q.name}</div>
+                  {q.description && <div className="text-[10px] text-zinc-500 mt-0.5">{q.description}</div>}
+                </div>
+                <span className="text-[10px] text-zinc-600 shrink-0 ml-2">{q.questions?.length ?? 0} Q</span>
               </div>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                value={guess}
-                onChange={(e) => setGuess(Number(e.target.value))}
-                className="w-full accent-purple-500"
-              />
-              <button
-                onClick={handleReveal}
-                className="w-full py-2 rounded-lg font-bold text-sm bg-purple-600 hover:bg-purple-500 text-white transition-colors"
-              >
-                Valider
-              </button>
-            </div>
-          )}
-
-          {isCalculating && (
-            <div className="text-center text-sm text-zinc-500 py-4">Chargement...</div>
-          )}
-
-          {revealed && round.error !== null && (
-            <div className="space-y-3">
-              <div className="text-center space-y-1">
-                <div className="text-sm">
-                  Réponse : <span className="font-bold text-emerald-400 font-mono-poker">{round.correctEquity}%</span>
-                </div>
-                <div className="text-sm">
-                  Votre estimation : <span className="font-bold text-purple-400 font-mono-poker">{round.guessedEquity}%</span>
-                </div>
-                <div className={`text-sm font-bold ${round.error <= 5 ? 'text-emerald-400' : round.error <= 10 ? 'text-amber-400' : 'text-red-400'}`}>
-                  Écart : {round.error.toFixed(1)}%
-                  {round.error <= 5 ? ' — Excellent !' : round.error <= 10 ? ' — Pas mal' : ' — À travailler'}
-                </div>
-              </div>
-              <button
-                onClick={handleNext}
-                className="w-full py-2 rounded-lg font-bold text-sm bg-purple-600 hover:bg-purple-500 text-white transition-colors"
-              >
-                {currentIndex + 1 >= totalQuestions ? 'Voir les résultats' : 'Question suivante'}
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Running stats */}
-      {history.length > 0 && (
-        <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-2">
-          <div className="flex justify-between text-[10px] text-zinc-500">
-            <span>{history.length}/{totalQuestions} répondu{history.length > 1 ? 'es' : 'e'}</span>
-            <span>
-              Écart moyen : <span className={`font-bold font-mono-poker ${avgError <= 5 ? 'text-emerald-400' : avgError <= 10 ? 'text-amber-400' : 'text-red-400'}`}>
-                {avgError.toFixed(1)}%
-              </span>
-            </span>
-          </div>
+            </button>
+          ))}
         </div>
       )}
     </div>

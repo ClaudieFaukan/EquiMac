@@ -1,5 +1,6 @@
-import { SUIT_SYMBOLS, SUIT_COLORS, type Suit } from '../../engine/constants';
-import { type Card, makeCard, cardToString, cardRank, cardSuit } from '../../engine/evaluator';
+import { SUIT_SYMBOLS, type Suit } from '../../engine/constants';
+import { type Card, makeCard } from '../../engine/evaluator';
+import { useSuitColors } from '../../hooks/useSuitColors';
 
 const RANK_LABELS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 const RANK_VALUES = [14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2];
@@ -13,6 +14,7 @@ interface CardPickerProps {
 }
 
 export function CardPicker({ onSelect, onClose, usedCards, position }: CardPickerProps) {
+  const suitColors = useSuitColors();
   return (
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} />
@@ -36,7 +38,7 @@ export function CardPicker({ onSelect, onClose, usedCards, position }: CardPicke
                       ? 'bg-zinc-900 text-zinc-700 cursor-not-allowed'
                       : 'bg-zinc-700 hover:bg-zinc-500 cursor-pointer'
                     }`}
-                  style={!used ? { color: SUIT_COLORS[suit] } : undefined}
+                  style={!used ? { color: suitColors[suit] } : undefined}
                 >
                   {rankLabel}{SUIT_SYMBOLS[suit]}
                 </button>

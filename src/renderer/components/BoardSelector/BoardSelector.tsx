@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { type Card, cardToString, parseCard } from '../../engine/evaluator';
-import { SUIT_SYMBOLS, SUIT_COLORS, type Suit } from '../../engine/constants';
+import { SUIT_SYMBOLS, type Suit } from '../../engine/constants';
+import { useSuitColors } from '../../hooks/useSuitColors';
 import { CardPicker } from './CardPicker';
 
 interface BoardSelectorProps {
@@ -11,7 +12,7 @@ interface BoardSelectorProps {
 
 const SUITS_MAP: Suit[] = ['s', 'h', 'd', 'c'];
 
-function CardDisplay({ card, onClick, placeholder }: { card?: Card; onClick: (e: React.MouseEvent) => void; placeholder: string }) {
+function CardDisplay({ card, onClick, placeholder, suitColors }: { card?: Card; onClick: (e: React.MouseEvent) => void; placeholder: string; suitColors: Record<Suit, string> }) {
   if (card === undefined) {
     return (
       <button
@@ -31,7 +32,7 @@ function CardDisplay({ card, onClick, placeholder }: { card?: Card; onClick: (e:
     <button
       onClick={onClick}
       className="w-10 h-12 rounded bg-zinc-700 border border-zinc-500 text-sm font-mono-poker font-bold flex items-center justify-center hover:bg-zinc-600 transition-colors"
-      style={{ color: SUIT_COLORS[suit] }}
+      style={{ color: suitColors[suit] }}
     >
       {rankChar}{SUIT_SYMBOLS[suit]}
     </button>
@@ -57,6 +58,7 @@ function textToBoard(text: string): Card[] | null {
 }
 
 export function BoardSelector({ board, onBoardChange, usedCards }: BoardSelectorProps) {
+  const suitColors = useSuitColors();
   const [pickerSlot, setPickerSlot] = useState<number | null>(null);
   const [pickerPos, setPickerPos] = useState<{ x: number; y: number } | undefined>();
   const [textInput, setTextInput] = useState('');
@@ -141,6 +143,7 @@ export function BoardSelector({ board, onBoardChange, usedCards }: BoardSelector
               card={board[i]}
               onClick={(e) => handleSlotClick(i, e)}
               placeholder="F"
+              suitColors={suitColors}
             />
           ))}
         </div>
@@ -149,12 +152,14 @@ export function BoardSelector({ board, onBoardChange, usedCards }: BoardSelector
           card={board[3]}
           onClick={(e) => handleSlotClick(3, e)}
           placeholder="T"
+          suitColors={suitColors}
         />
         <div className="w-px bg-zinc-700 mx-0.5" />
         <CardDisplay
           card={board[4]}
           onClick={(e) => handleSlotClick(4, e)}
           placeholder="R"
+          suitColors={suitColors}
         />
       </div>
 

@@ -18,6 +18,18 @@ export const SUIT_COLORS: Record<Suit, string> = {
   c: '#16a34a',
 };
 
+export const SUIT_COLORS_LIGHT: Record<Suit, string> = {
+  s: '#18181b',
+  h: '#dc2626',
+  d: '#2563eb',
+  c: '#16a34a',
+};
+
+/** Get suit colors based on theme */
+export function getSuitColors(theme: 'dark' | 'light'): Record<Suit, string> {
+  return theme === 'light' ? SUIT_COLORS_LIGHT : SUIT_COLORS;
+}
+
 export type HandType = 'pair' | 'suited' | 'offsuit';
 
 export interface HandCombo {
